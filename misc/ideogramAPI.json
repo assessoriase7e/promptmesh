@@ -1,0 +1,2400 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "description": "This is the API definition for Ideogram AI.",
+    "title": "Ideogram - OpenAPI 3.0",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "" }],
+  "security": [{ "ApiKeyAuth": [] }],
+  "tags": [
+    {
+      "description": "All things related to generating content.",
+      "externalDocs": { "description": "Find out more", "url": "https://docs.ideogram.ai" },
+      "name": "generate"
+    },
+    {
+      "description": "Content related to managing API account and API access",
+      "externalDocs": { "description": "Find out more", "url": "https://docs.ideogram.ai" },
+      "name": "manage"
+    },
+    {
+      "description": "Operations related to understanding visual content",
+      "externalDocs": { "description": "Find out more", "url": "https://docs.ideogram.ai" },
+      "name": "vision"
+    },
+    {
+      "description": "Operations and endpoints designed for doing internal testing. Not intended to be called outside a test environment.",
+      "externalDocs": { "description": "Find out more", "url": "https://docs.ideogram.ai" },
+      "name": "internal-testing"
+    }
+  ],
+  "paths": {
+    "/describe": {
+      "post": {
+        "description": "Describe an image.\n\nSupported image formats include JPEG, PNG, and WebP.\n",
+        "operationId": "post_describe",
+        "requestBody": {
+          "content": { "multipart/form-data": { "schema": { "$ref": "#/components/schemas/DescribeRequest" } } },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DescribeResponse" } } },
+            "description": "Description(s) created successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "422": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ImageSafetyError" } } },
+            "description": "Image failed the safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Describe",
+        "tags": ["vision"],
+        "x-fern-examples": [
+          {
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/describe \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image_file=@<file1>\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.vision_controller"
+      }
+    },
+    "/edit": {
+      "post": {
+        "description": "Edit a given image synchronously using the provided mask. The mask indicates which part of the image\nshould be edited, while the prompt and chosen style type can further guide the edit.\n\nSupported image formats include JPEG, PNG, and WebP.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_edit_image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "prompt": { "contentType": "text/plain", "style": "form" },
+                "model": { "contentType": "text/plain", "style": "form" },
+                "magic_prompt_option": { "contentType": "text/plain", "style": "form" },
+                "seed": { "contentType": "text/plain", "style": "form" },
+                "style_type": { "contentType": "text/plain", "style": "form" }
+              },
+              "schema": { "$ref": "#/components/schemas/EditImageRequest" }
+            }
+          },
+          "description": "A request to edit an image with Ideogram.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageResponse" } } },
+            "description": "Image edits generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or Initial Image failed the safety checks."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Edit (legacy)",
+        "tags": ["generate"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/generate": {
+      "post": {
+        "description": "Generates images synchronously based on a given prompt and optional parameters.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_generate_image",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageRequest" } } },
+          "description": "A request to generate an image with Ideogram.",
+          "required": true,
+          "x-body-name": "generate_image_request"
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageResponse" } } },
+            "description": "Image(s) generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt failed the safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Generate (legacy)",
+        "tags": ["generate"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/internal-testing": {
+      "post": {
+        "description": "Just a testing endpoint\n",
+        "operationId": "post_internal_testing",
+        "parameters": [
+          {
+            "description": "Test header",
+            "explode": false,
+            "in": "header",
+            "name": "X-Test-Header",
+            "required": false,
+            "schema": { "type": "string" },
+            "style": "simple"
+          },
+          {
+            "description": "Test header",
+            "explode": false,
+            "in": "header",
+            "name": "X-Test-Header-2",
+            "required": false,
+            "schema": { "type": "string" },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": {
+                "x_position": { "contentType": "text/plain", "style": "form" },
+                "some_text": { "contentType": "text/plain", "style": "form" },
+                "nested_object": { "contentType": "application/json", "style": "form" },
+                "repeated_complex_field": { "contentType": "application/json", "style": "form" }
+              },
+              "schema": { "$ref": "#/components/schemas/InternalTestingRequest" }
+            }
+          },
+          "description": "A request for testing.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/postInternalTesting_200_response" } }
+            },
+            "description": "Success"
+          }
+        },
+        "security": [],
+        "summary": "Testing",
+        "tags": ["internal-testing"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.internal_testing_controller"
+      }
+    },
+    "/magic-prompt": {
+      "post": {
+        "description": "Transforms basic prompts into a magic prompt. Internal use only (feature flagged). TODO: update description if enabled externally.\n",
+        "operationId": "post_magic_prompt",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": { "schema": { "$ref": "#/components/schemas/MagicPromptRequest" } },
+            "application/json": { "schema": { "$ref": "#/components/schemas/MagicPromptRequest" } }
+          },
+          "description": "A request to generate a magic prompt",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MagicPromptResponse" } } },
+            "description": "Magic prompt generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate magic prompts." },
+          "429": { "description": "Too many requests." },
+          "500": { "description": "Internal server error." }
+        },
+        "summary": "Generate Magic Prompt",
+        "tags": ["prompt"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.prompt_controller"
+      }
+    },
+    "/manage/api/add_credits": {
+      "post": {
+        "operationId": "post_add_credits_for_api",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PostAddCreditsRequest" } } },
+          "description": "A request to add credits to an API user's account.",
+          "required": true,
+          "x-body-name": "post_add_credits_request"
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PostAddCreditsResponse" } } },
+            "description": "API subscription content"
+          },
+          "400": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PostAddCreditsError" } } },
+            "description": "Bad request"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Add credits to an API user's account.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/api_keys": {
+      "get": {
+        "operationId": "get_api_keys",
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GetApiKeysResponse" } } },
+            "description": "API keys the user currently manages"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Retrieve current API keys and their respective data.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      },
+      "post": {
+        "operationId": "create_api_key",
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PostApiKeyResponse" } } },
+            "description": "The newly created API key"
+          },
+          "401": { "description": "Not authorized" },
+          "402": { "description": "Payment is required; did you create a subscription?" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Creates an API key.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/api_keys/{api_key_id}": {
+      "delete": {
+        "operationId": "delete_single_api_key",
+        "parameters": [
+          {
+            "description": "The ID of API key to operate on. Expected to be a URL safe Base64 encoded UUID.",
+            "example": "d7abd0cd4ae94db78676e986a4ebd8dc",
+            "in": "path",
+            "name": "api_key_id",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Success" },
+          "400": { "description": "Something went wrong" },
+          "401": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Delete an API key.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/reactivate": {
+      "post": {
+        "operationId": "reactivate_subscription",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PostApiReactivateResponse" } }
+            },
+            "description": "API subscription content"
+          },
+          "401": { "description": "Not authorized" },
+          "402": { "description": "Payment is required; is your payment method setup?" },
+          "404": { "description": "User does not have a subscription to reactivate." }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Reactivates a subscription by attempting to re-enable Metronome billing.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/stripe_subscription": {
+      "get": {
+        "operationId": "get_api_stripe_subscription",
+        "parameters": [
+          {
+            "description": "Whether the subscription is intended to be used for business or personal use.",
+            "in": "query",
+            "name": "isBusiness",
+            "schema": { "type": "boolean" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ManageApiStripeSubscriptionResponse" } }
+            },
+            "description": "API subscription content related to connecting to Stripe"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Retrieve data relevant to connecting to Stripe.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/subscription": {
+      "get": {
+        "operationId": "get_api_subscription",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ManageApiSubscriptionResponse" } }
+            },
+            "description": "API subscription content"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Retrieve data relevant to creating an API subscription.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      },
+      "post": {
+        "operationId": "post_api_subscription",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/PostApiSubscriptionRequest" } }
+          },
+          "description": "A request to update the API subscription properties. This should only be called after terms have been accepted.",
+          "required": true,
+          "x-body-name": "post_api_subscription_request"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PostApiSubscriptionResponse" } }
+            },
+            "description": "API subscription content"
+          },
+          "400": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/PostApiSubscriptionError" } }
+            },
+            "description": "Bad request"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Update API subscription settings",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/manage/api/terms": {
+      "get": {
+        "operationId": "get_api_terms",
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GetApiTermsResponse" } } },
+            "description": "Retrieves the latest API terms"
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Retrieve the latest terms of service for API usage.",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      },
+      "post": {
+        "operationId": "post_api_terms",
+        "requestBody": {
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PostApiTermsRequest" } } },
+          "description": "A request to accept the API terms.",
+          "required": true,
+          "x-body-name": "post_api_terms_request"
+        },
+        "responses": {
+          "204": { "description": "Success; no content." },
+          "400": { "description": "Bad Request" },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized" }
+        },
+        "security": [{ "BearerAuth": [] }],
+        "summary": "Accept terms",
+        "tags": ["manage"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.manage_controller"
+      }
+    },
+    "/reframe": {
+      "post": {
+        "description": "Reframe a square image to a chosen resolution. The supported image formats include JPEG, PNG, and WebP.\n\nImage links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_reframe_image",
+        "requestBody": {
+          "content": { "multipart/form-data": { "schema": { "$ref": "#/components/schemas/ReframeImageRequest" } } },
+          "description": "A request to reframe an image in a new resolution.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageResponse" } } },
+            "description": "Image re-frames generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or Image failed the safety checks."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Reframe (legacy)",
+        "tags": ["generate"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/remix": {
+      "post": {
+        "description": "Remix provided images synchronously based on a given prompt and optional parameters.\n\nInput images are cropped to the chosen aspect ratio before being remixed.\n\nSupported image formats include JPEG, PNG, and WebP.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_remix_image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "image_request": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/RemixImageRequest" }
+            }
+          },
+          "description": "A request to remix a provided image with Ideogram. Input images are cropped to the chosen aspect ratio before being remixed.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageResponse" } } },
+            "description": "Image(s) generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "403": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or provided image failed safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Remix (legacy)",
+        "tags": ["generate"],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/upscale": {
+      "post": {
+        "description": "Upscale provided images synchronously with an optional prompt.\n\nSupported image formats include JPEG, PNG, and WebP.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_upscale_image",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "image_request": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/UpscaleImageRequest" }
+            }
+          },
+          "description": "A request to upscale a provided image with Ideogram.",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageResponse" } } },
+            "description": "Image(s) generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "403": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or provided image failed safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Upscale",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": { "image_request": { "resemblance": 55, "detail": 90 } },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "A photo of a cat",
+                    "resolution": "1280x800",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/upscale \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image_file=@<file1> \\\n  -F image_request='{\n      \"resemblance\": 55,\n      \"detail\": 90\n    }'\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\nimport json\n\nresponse = requests.post(\n  \"https://api.ideogram.ai/upscale\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  data={\n    \"image_request\": json.dumps({\n      \"resemblance\": 55,\n      \"detail\": 90\n    })\n  },\n  files={\n    \"image_file\": open(\"<file1>\", \"rb\")\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('image_request', JSON.stringify({\n  resemblance: 55,\n  detail: 90\n}));\nformData.append('image_file', new Blob([fs.readFileSync(\"<file1>\")], {\n  type: 'image/png'\n}));\nconst response = await fetch('https://api.ideogram.ai/upscale', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/v1/ideogram-v3/edit": {
+      "post": {
+        "description": "Edit a given image synchronously using the provided mask with Ideogram 3.0. The mask indicates which part of the image\nshould be edited, while the prompt and chosen style can further guide the edit.\n\nSupported image formats include JPEG, PNG, and WebP.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_edit_image_v3",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "color_palette": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/EditImageRequestV3" }
+            }
+          },
+          "description": "A request to edit an image with Ideogram 3.0.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ImageGenerationResponseV3" } }
+            },
+            "description": "Image edits generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or Initial Image failed the safety checks."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Edit with Ideogram 3.0",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": { "prompt": "A photo of a cat wearing a hat." },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "A photo of a cat wearing a hat.",
+                    "resolution": "1024x1024",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/v1/ideogram-v3/edit \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image=@<file1> \\\n  -F mask=@<file1> \\\n  -F prompt=\"A photo of a cat wearing a hat.\" \\\n  -F rendering_speed=\"DEFAULT\"\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\n\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/edit\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  data={\n    \"prompt\": \"A photo of a cat wearing a hat.\",\n    \"rendering_speed\": \"DEFAULT\"\n  },\n  files={\n    \"image\": open(\"<file1>\", \"rb\"),\n    \"mask\": open(\"<file1>\", \"rb\"),\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('prompt', 'A photo of a cat');\nformData.append('rendering_speed', 'TURBO');\nconst response = await fetch('https://api.ideogram.ai/v1/ideogram-v3/edit', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/v1/ideogram-v3/generate": {
+      "post": {
+        "description": "Generates images synchronously based on a given prompt and optional parameters using the Ideogram 3.0 model.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_generate_image_v3",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "color_palette": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/GenerateImageRequestV3" }
+            },
+            "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageRequestV3" } }
+          },
+          "description": "A request to generate an image with Ideogram 3.0.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ImageGenerationResponseV3" } }
+            },
+            "description": "Image(s) generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt failed the safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Generate with Ideogram 3.0",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": {
+              "prompt": "A photo of a cat sleeping on a couch.",
+              "rendering_speed": "TURBO",
+              "aspect_ratio": "1x1"
+            },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "A photo of a cat sleeping on a couch.",
+                    "resolution": "1024x1024",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/v1/ideogram-v3/generate \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F prompt=\"A photo of a cat sleeping on a couch.\" \\\n  -F rendering_speed=\"TURBO\"\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\n\n# Generate with Ideogram 3.0 (POST /v1/ideogram-v3/generate)\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/generate\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  json={\n    \"prompt\": \"A picture of a cat\",\n    \"rendering_speed\": \"TURBO\"\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n\n# Generate with style reference images\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/generate\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  data={\n    \"prompt\": \"A picture of a cat\",\n    \"aspect_ratio\": \"3x1\"\n  },\n  files=[\n    (\"style_reference_images\", open(\"style_reference_image_1.png\", \"rb\")),\n    (\"style_reference_images\", open(\"style_reference_image_2.png\", \"rb\")),\n  ]\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('prompt', 'A photo of a cat');\nformData.append('rendering_speed', 'TURBO');\n// To add style reference images, uncomment the following lines\n// formData.append('style_reference_images', '<style_reference_image_1>');\n// formData.append('style_reference_images', '<style_reference_image_2>');\nconst response = await fetch('https://api.ideogram.ai/v1/ideogram-v3/generate', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/v1/ideogram-v3/reframe": {
+      "post": {
+        "description": "Reframe a square image to a chosen resolution with Ideogram 3.0. The supported image formats include JPEG, PNG, and WebP.\n\nImage links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_reframe_image_v3",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "color_palette": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/ReframeImageRequestV3" }
+            }
+          },
+          "description": "A request to reframe an image in a new resolution.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ImageGenerationResponseV3" } }
+            },
+            "description": "Image re-frames generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or Image failed the safety checks."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Reframe with Ideogram 3.0",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": { "resolution": "512x1536" },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "A photo of a cat",
+                    "resolution": "1280x800",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/v1/ideogram-v3/reframe \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image=@<file1> \\\n  -F resolution=\"512x1536\"\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\n\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/reframe\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  data={\n    \"resolution\": \"512x1536\"\n  },\n  files={\n    \"image\": open(\"<file1>\", \"rb\"),\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('resolution', '512x1536');\nformData.append('image', '<file1>');\nconst response = await fetch('https://api.ideogram.ai/v1/ideogram-v3/reframe', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/v1/ideogram-v3/remix": {
+      "post": {
+        "description": "Remix provided images synchronously based on a given prompt and optional parameters with the Ideogram 3.0 model.\n\nInput images are cropped to the chosen aspect ratio before being remixed.\n\nSupported image formats include JPEG, PNG, and WebP.\n\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_remix_image_v3",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "color_palette": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/RemixImageRequestV3" }
+            }
+          },
+          "description": "A request to remix an image with Ideogram 3.0.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ImageGenerationResponseV3" } }
+            },
+            "description": "Image(s) generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "403": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or provided image failed safety check."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Remix with Ideogram 3.0",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": {
+              "prompt": "A photo of a cat",
+              "rendering_speed": "DEFAULT",
+              "image_weight": 50,
+              "aspect_ratio": "1x2"
+            },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "A photo of a cat",
+                    "resolution": "1280x800",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/v1/ideogram-v3/remix \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image=@<file1> \\\n  -F prompt=\"A photo of a cat\" \\\n  -F rendering_speed=\"TURBO\"\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\n\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/remix\",\n  headers={\n    \"Api-Key\": \"<apiKey>\"\n  },\n  data={\n    \"prompt\": \"A photo of a cat\",\n    \"rendering_speed\": \"TURBO\"\n  },\n  files={\n    \"image\": open(\"<file1>\", \"rb\"),\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('prompt', 'A photo of a cat');\nformData.append('rendering_speed', 'TURBO');\nformData.append('image', '<file1>');\nconst response = await fetch('https://api.ideogram.ai/v1/ideogram-v3/remix', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    },
+    "/v1/ideogram-v3/replace-background": {
+      "post": {
+        "description": "Replace the background of a given image synchronously using a prompt with Ideogram 3.0. The foreground subject\nwill be identified and kept, while the background is replaced based on the prompt and chosen style.\nSupported image formats include JPEG, PNG, and WebP.\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.\n",
+        "operationId": "post_replace_background_v3",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "encoding": { "color_palette": { "contentType": "application/json", "style": "form" } },
+              "schema": { "$ref": "#/components/schemas/ReplaceBackgroundRequestV3" }
+            }
+          },
+          "description": "A request to replace the background of an image with Ideogram 3.0.",
+          "required": true,
+          "x-body-name": "body"
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ImageGenerationResponseV3" } }
+            },
+            "description": "Background replacement generated successfully."
+          },
+          "400": { "description": "Invalid input provided." },
+          "401": { "description": "Not authorized to generate an image." },
+          "422": {
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/GenerateImageSafetyError" } }
+            },
+            "description": "Prompt or Initial Image failed the safety checks."
+          },
+          "429": { "description": "Too many requests." }
+        },
+        "summary": "Replace Background with Ideogram 3.0",
+        "tags": ["generate"],
+        "x-fern-examples": [
+          {
+            "request": {
+              "prompt": "Add a forest in the background",
+              "magic_prompt": "ON",
+              "rendering_speed": "QUALITY"
+            },
+            "response": {
+              "body": {
+                "created": "2000-01-23T04:56:07+00:00",
+                "data": [
+                  {
+                    "prompt": "Add a forest in the background",
+                    "resolution": "1280x800",
+                    "is_image_safe": true,
+                    "seed": 12345,
+                    "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+                    "style_type": "GENERAL"
+                  }
+                ]
+              }
+            },
+            "code-samples": [
+              {
+                "sdk": "curl",
+                "code": "curl -X POST https://api.ideogram.ai/v1/ideogram-v3/replace-background \\\n  -H \"Api-Key: <apiKey>\" \\\n  -H \"Content-Type: multipart/form-data\" \\\n  -F image=@<file1> \\\n  -F prompt=\"Add a forest in the background\"\n"
+              },
+              {
+                "sdk": "python",
+                "code": "import requests\n\nresponse = requests.post(\n  \"https://api.ideogram.ai/v1/ideogram-v3/replace-background\",\n  headers={\n    \"Api-Key\": \"<apiKey>\" \n  },\n  data={\n    \"prompt\": \"Add a forest in the background\",\n    \"magic_prompt\": \"ON\"\n  },\n  files={\n    \"image\": open(\"<file1>\", \"rb\"),\n  }\n)\nprint(response.json())\nwith open('output.png', 'wb') as f:\n  f.write(requests.get(response.json()['data'][0]['url']).content)\n"
+              },
+              {
+                "sdk": "typescript",
+                "code": "const formData = new FormData();\nformData.append('prompt', 'Add a forest in the background');\nformData.append('image', '<file1>');\nconst response = await fetch('https://api.ideogram.ai/v1/ideogram-v3/replace-background', {\n  method: 'POST',\n  headers: { 'Api-Key': '<apiKey>' },\n  body: formData\n});\nconst data = await response.json();\nconsole.log(data);\n"
+              }
+            ]
+          }
+        ],
+        "x-openapi-router-controller": "external_api.generated.openapi.controllers.generate_controller"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DescribeResponse": {
+        "description": "The response for a describe request encapsulates a list of descriptions.",
+        "example": {
+          "descriptions": [
+            {
+              "text": "A meticulously illustrated cat with striped patterns, sitting upright. The cat's eyes are a captivating shade of yellow, and it appears to be gazing intently at something. The background consists of abstract, swirling patterns in shades of black, white, and beige, creating an almost fluid or wavy appearance. The cat is positioned in the foreground, with the background elements fading into the distance, giving a sense of depth to the image."
+            },
+            {
+              "text": "A meticulously illustrated cat with striped patterns, sitting upright. The cat's eyes are a captivating shade of yellow, and it appears to be gazing intently at something. The background consists of abstract, swirling patterns in shades of black, white, and beige, creating an almost fluid or wavy appearance. The cat is positioned in the foreground, with the background elements fading into the distance, giving a sense of depth to the image."
+            }
+          ]
+        },
+        "properties": {
+          "descriptions": {
+            "description": "A collection of descriptions for given content.",
+            "items": { "$ref": "#/components/schemas/Description" },
+            "title": "descriptions",
+            "type": "array"
+          }
+        },
+        "title": "DescribeResponse",
+        "type": "object"
+      },
+      "DescribeRequest": {
+        "properties": {
+          "image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "describe_model_version": { "$ref": "#/components/schemas/DescribeModelVersion" }
+        },
+        "required": ["image_file"],
+        "type": "object"
+      },
+      "EditImageRequest": {
+        "properties": {
+          "image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "mask": {
+            "description": "A black and white image of the same size as the image being edited (max size 10MB). Black regions in the mask should match up with the regions of the image that you would like to edit; only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt used to describe the edited result.",
+            "example": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+            "type": "string"
+          },
+          "model": { "$ref": "#/components/schemas/ModelEnum" },
+          "magic_prompt_option": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "num_images": { "$ref": "#/components/schemas/NumImages" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "style_type": { "$ref": "#/components/schemas/StyleType" }
+        },
+        "required": ["image_file", "mask", "model", "prompt"],
+        "type": "object"
+      },
+      "GenerateImageRequest": {
+        "example": {
+          "image_request": {
+            "aspect_ratio": "ASPECT_10_16",
+            "magic_prompt_option": "AUTO",
+            "model": "V_2",
+            "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset."
+          }
+        },
+        "properties": { "image_request": { "$ref": "#/components/schemas/ImageRequest" } },
+        "required": ["image_request"],
+        "title": "GenerateImageRequest",
+        "type": "object"
+      },
+      "GenerateImageRequestV3": {
+        "properties": {
+          "prompt": {
+            "description": "The prompt to use to generate the image.",
+            "example": "A photo of a cat",
+            "type": "string"
+          },
+          "seed": {
+            "description": "Random seed. Set for reproducible generation.",
+            "example": 12345,
+            "maximum": 2147483647,
+            "minimum": 0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "resolution": { "$ref": "#/components/schemas/ResolutionV3" },
+          "aspect_ratio": { "$ref": "#/components/schemas/AspectRatioV3" },
+          "rendering_speed": { "$ref": "#/components/schemas/RenderingSpeed" },
+          "magic_prompt": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "negative_prompt": {
+            "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence\nto descriptions in the negative prompt.\n",
+            "example": "brush strokes, painting",
+            "type": "string"
+          },
+          "num_images": {
+            "default": 1,
+            "description": "Number of images to generate.",
+            "maximum": 8,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" },
+          "style_codes": {
+            "description": "A list of 8 character hexadecimal codes representing the style of the image. Cannot be used in conjunction with style_reference_images or style_type.",
+            "example": ["AAFF5733", "0133FF57", "DE3357FF"],
+            "items": { "$ref": "#/components/schemas/StyleCode" },
+            "type": "array"
+          },
+          "style_type": { "$ref": "#/components/schemas/StyleTypeV3" },
+          "style_reference_images": {
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          },
+          "character_reference_images": {
+            "description": "A set of images to use as character references (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["prompt"],
+        "type": "object"
+      },
+      "RemixImageRequestV3": {
+        "properties": {
+          "image": {
+            "description": "The image to remix binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt to use to generate the image.",
+            "example": "A photo of a cat",
+            "type": "string"
+          },
+          "image_weight": { "default": 50, "example": 50, "maximum": 100, "minimum": 1, "type": "integer" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "resolution": { "$ref": "#/components/schemas/ResolutionV3" },
+          "aspect_ratio": { "$ref": "#/components/schemas/AspectRatioV3" },
+          "rendering_speed": { "$ref": "#/components/schemas/RenderingSpeed" },
+          "magic_prompt": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "negative_prompt": {
+            "description": "Description of what to exclude from an image. Descriptions in the prompt take precedence\nto descriptions in the negative prompt.\n",
+            "example": "brush strokes, painting",
+            "type": "string"
+          },
+          "num_images": {
+            "default": 1,
+            "description": "Number of images to generate.",
+            "maximum": 8,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" },
+          "style_codes": { "$ref": "#/components/schemas/StyleCodes" },
+          "style_type": { "$ref": "#/components/schemas/StyleTypeV3" },
+          "style_reference_images": {
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          },
+          "character_reference_images": {
+            "description": "A set of images to use as character references (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["image", "prompt"],
+        "type": "object"
+      },
+      "EditImageRequestV3": {
+        "properties": {
+          "image": {
+            "description": "The image being edited (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "mask": {
+            "description": "A black and white image of the same size as the image being edited (max size 10MB). Black regions in the mask should match up with the regions of the image that you would like to edit; only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt used to describe the edited result.",
+            "example": "A photo of a cat.",
+            "type": "string"
+          },
+          "magic_prompt": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "num_images": { "$ref": "#/components/schemas/NumImages" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "rendering_speed": { "$ref": "#/components/schemas/RenderingSpeed" },
+          "style_type": { "$ref": "#/components/schemas/StyleTypeV3" },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" },
+          "style_codes": { "$ref": "#/components/schemas/StyleCodes" },
+          "style_reference_images": {
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          },
+          "character_reference_images": {
+            "description": "A set of images to use as character references (maximum total size 10MB across all character references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["image", "mask", "prompt"],
+        "type": "object"
+      },
+      "ReframeImageRequestV3": {
+        "properties": {
+          "image": {
+            "description": "The image being reframed (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "resolution": { "$ref": "#/components/schemas/ResolutionV3" },
+          "num_images": { "$ref": "#/components/schemas/NumImages" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "rendering_speed": { "$ref": "#/components/schemas/RenderingSpeed" },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" },
+          "style_codes": { "$ref": "#/components/schemas/StyleCodes" },
+          "style_reference_images": {
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["image", "resolution"],
+        "type": "object"
+      },
+      "ReplaceBackgroundRequestV3": {
+        "properties": {
+          "image": {
+            "description": "The image whose background is being replaced (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt describing the desired new background.",
+            "example": "A vibrant cityscape at night.",
+            "type": "string"
+          },
+          "magic_prompt": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "num_images": { "$ref": "#/components/schemas/NumImages" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "rendering_speed": { "$ref": "#/components/schemas/RenderingSpeed" },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" },
+          "style_codes": { "$ref": "#/components/schemas/StyleCodes" },
+          "style_reference_images": {
+            "description": "A set of images to use as style references (maximum total size 10MB across all style references). The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["image", "prompt"],
+        "type": "object"
+      },
+      "InternalTestingRequest": {
+        "properties": {
+          "x_position": { "nullable": true, "type": "integer" },
+          "image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "another_image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "some_text": { "type": "string" },
+          "nested_object": { "$ref": "#/components/schemas/InternalTestingNestedObject" },
+          "nested_object_required_fields": { "$ref": "#/components/schemas/InternalTestingNestedObjectRequiredFields" },
+          "date_type_field": { "format": "date", "type": "string" },
+          "required_date_type_field": { "format": "date", "type": "string" },
+          "date_time_type_field": { "format": "date-time", "type": "string" },
+          "repeated_primitive_field": { "items": { "type": "string" }, "type": "array" },
+          "repeated_complex_field": {
+            "items": { "$ref": "#/components/schemas/InternalTestingNestedObject" },
+            "type": "array"
+          },
+          "enum_type_field": { "$ref": "#/components/schemas/InternalTestingEnumField" }
+        },
+        "required": ["required_date_type_field"],
+        "type": "object"
+      },
+      "InternalTestingEnumField": {
+        "enum": ["EIN", "ZWEI", "DREI"],
+        "title": "InternalTestingEnumField",
+        "type": "string"
+      },
+      "InternalTestingNestedObject": {
+        "properties": {
+          "prop_one": { "title": "prop_one", "type": "string" },
+          "prop_two": { "title": "prop_two", "type": "string" }
+        },
+        "title": "InternalTestingNestedObject",
+        "type": "object"
+      },
+      "InternalTestingNestedObjectRequiredFields": {
+        "properties": {
+          "prop_one": { "title": "prop_one", "type": "string" },
+          "prop_two": { "title": "prop_two", "type": "string" }
+        },
+        "required": ["prop_one", "prop_two"],
+        "title": "InternalTestingNestedObjectRequiredFields",
+        "type": "object"
+      },
+      "RemixImageRequest": {
+        "description": "A request to generate an image from a source image and a provided caption, provided images are cropped to match the chosen output aspect ratio.",
+        "properties": {
+          "image_request": { "$ref": "#/components/schemas/InitialImageRequest" },
+          "image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          }
+        },
+        "required": ["image_file", "image_request"],
+        "type": "object"
+      },
+      "ReframeImageRequest": {
+        "properties": {
+          "image_file": {
+            "description": "The image being reframed (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          },
+          "resolution": { "$ref": "#/components/schemas/Resolution" },
+          "model": { "$ref": "#/components/schemas/ModelEnum" },
+          "num_images": { "$ref": "#/components/schemas/NumImages" },
+          "seed": { "$ref": "#/components/schemas/Seed" },
+          "style_type": { "$ref": "#/components/schemas/StyleType" }
+        },
+        "required": ["image_file", "model", "resolution"],
+        "type": "object"
+      },
+      "UpscaleImageRequest": {
+        "properties": {
+          "image_request": { "$ref": "#/components/schemas/UpscaleInitialImageRequest" },
+          "image_file": {
+            "description": "An image binary (max size 10MB); only JPEG, WebP and PNG formats are supported at this time.",
+            "format": "binary",
+            "type": "string"
+          }
+        },
+        "required": ["image_file", "image_request"],
+        "type": "object"
+      },
+      "ImageRequest": {
+        "example": {
+          "aspect_ratio": "ASPECT_10_16",
+          "magic_prompt_option": "AUTO",
+          "model": "V_2",
+          "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset."
+        },
+        "properties": {
+          "prompt": {
+            "description": "The prompt to use to generate the image.",
+            "example": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+            "type": "string"
+          },
+          "aspect_ratio": { "$ref": "#/components/schemas/AspectRatio" },
+          "model": { "$ref": "#/components/schemas/ModelEnum" },
+          "magic_prompt_option": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "magic_prompt_version": { "$ref": "#/components/schemas/MagicPromptVersionEnum" },
+          "seed": {
+            "description": "Random seed. Set for reproducible generation.",
+            "example": 12345,
+            "maximum": 2147483647,
+            "minimum": 0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "style_type": { "$ref": "#/components/schemas/StyleType" },
+          "negative_prompt": {
+            "description": "Only available for model versions V_1, V_1_TURBO, V_2 and V_2_TURBO. Description of what to exclude from an image. Descriptions in the prompt take precedence to descriptions in the negative prompt.",
+            "example": "brush strokes, painting",
+            "type": "string"
+          },
+          "num_images": {
+            "default": 1,
+            "description": "The number of images to generate.",
+            "maximum": 8,
+            "minimum": 1,
+            "title": "num_images",
+            "type": "integer"
+          },
+          "resolution": { "$ref": "#/components/schemas/Resolution" },
+          "color_palette": { "$ref": "#/components/schemas/ColorPaletteWithPresetNameOrMembers" }
+        },
+        "required": ["prompt"],
+        "title": "ImageRequest",
+        "type": "object"
+      },
+      "InitialImageRequest": {
+        "allOf": [{ "$ref": "#/components/schemas/ImageRequest" }],
+        "description": "A request to generate a new image using a provided image and a prompt.",
+        "example": {
+          "aspect_ratio": "ASPECT_10_16",
+          "magic_prompt_option": "ON",
+          "model": "V_2",
+          "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+          "image_weight": 50
+        },
+        "properties": {
+          "image_weight": { "default": 50, "example": 50, "maximum": 100, "minimum": 1, "type": "integer" }
+        },
+        "title": "InitialImageRequest",
+        "type": "object"
+      },
+      "UpscaleInitialImageRequest": {
+        "description": "A request to upscale a provided image with the help of an optional prompt.",
+        "properties": {
+          "prompt": {
+            "description": "An optional prompt to guide the upscale",
+            "example": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there is an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+            "title": "prompt",
+            "type": "string"
+          },
+          "resemblance": {
+            "default": 50,
+            "example": 50,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "resemblance",
+            "type": "integer"
+          },
+          "detail": {
+            "default": 50,
+            "example": 50,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "detail",
+            "type": "integer"
+          },
+          "magic_prompt_option": { "$ref": "#/components/schemas/MagicPromptOption" },
+          "magic_prompt_version": { "$ref": "#/components/schemas/MagicPromptVersionEnum" },
+          "num_images": {
+            "default": 1,
+            "description": "The number of images to generate.",
+            "maximum": 8,
+            "minimum": 1,
+            "title": "num_images",
+            "type": "integer"
+          },
+          "seed": {
+            "description": "Random seed. Set for reproducible generation.",
+            "example": 12345,
+            "maximum": 2147483647,
+            "minimum": 0,
+            "title": "Seed",
+            "type": "integer"
+          }
+        },
+        "title": "UpscaleInitialImageRequest",
+        "type": "object"
+      },
+      "GenerateImageResponse": {
+        "description": "The response which contains information about the generated image, including the download link.\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.",
+        "example": {
+          "data": [
+            {
+              "style_type": "REALISTIC",
+              "seed": 12345,
+              "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+              "resolution": "1024x1024",
+              "url": "https://ideogram.ai/api/images/direct/8YEpFzHuS-S6xXEGmCsf7g",
+              "is_image_safe": true
+            },
+            {
+              "style_type": "REALISTIC",
+              "seed": 12345,
+              "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+              "resolution": "1024x1024",
+              "url": "https://ideogram.ai/api/images/direct/8YEpFzHuS-S6xXEGmCsf7g",
+              "is_image_safe": true
+            }
+          ],
+          "created": "2000-01-23T04:56:07+00:00"
+        },
+        "properties": {
+          "created": {
+            "description": "The time the request was created.",
+            "format": "date-time",
+            "title": "created",
+            "type": "string"
+          },
+          "data": {
+            "description": "A list of ImageObjects that contain the generated image(s).",
+            "items": { "$ref": "#/components/schemas/ImageObject" },
+            "title": "data",
+            "type": "array"
+          }
+        },
+        "required": ["created", "data"],
+        "title": "GenerateImageResponse",
+        "type": "object"
+      },
+      "ImageGenerationResponseV3": {
+        "description": "The response which contains information about the generated image, including the download link.\nImages links are available for a limited period of time; if you would like to keep the image, you must download it.",
+        "example": {
+          "data": [
+            {
+              "style_type": "GENERAL",
+              "seed": 12345,
+              "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+              "resolution": "1280x800",
+              "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+              "is_image_safe": true
+            },
+            {
+              "style_type": "GENERAL",
+              "seed": 12345,
+              "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+              "resolution": "1280x800",
+              "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+              "is_image_safe": true
+            }
+          ],
+          "created": "2000-01-23T04:56:07+00:00"
+        },
+        "properties": {
+          "created": {
+            "description": "The time the request was created.",
+            "format": "date-time",
+            "title": "created",
+            "type": "string"
+          },
+          "data": {
+            "description": "A list of ImageObjects that contain the generated image(s).",
+            "items": { "$ref": "#/components/schemas/ImageGenerationObjectV3" },
+            "title": "data",
+            "type": "array"
+          }
+        },
+        "required": ["created", "data"],
+        "title": "ImageGenerationResponseV3",
+        "type": "object"
+      },
+      "ImageGenerationObjectV3": {
+        "example": {
+          "style_type": "GENERAL",
+          "seed": 12345,
+          "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+          "resolution": "1280x800",
+          "url": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+          "is_image_safe": true
+        },
+        "properties": {
+          "url": {
+            "description": "The direct link to the image generated.",
+            "example": "https://ideogram.ai/api/images/ephemeral/xtdZiqPwRxqY1Y7NExFmzB.png?exp=1743867804&sig=e13e12677633f646d8531a153d20e2d3698dca9ee7661ee5ba4f3b64e7ec3f89",
+            "format": "uri",
+            "nullable": true,
+            "title": "url",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt used for the generation. This may be different from the original prompt.",
+            "example": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+            "title": "prompt",
+            "type": "string"
+          },
+          "resolution": { "$ref": "#/components/schemas/ResolutionV3" },
+          "is_image_safe": {
+            "description": "Whether this request passes safety checks. If false, the url field will be empty.",
+            "title": "is_image_safe",
+            "type": "boolean"
+          },
+          "seed": {
+            "description": "Random seed. Set for reproducible generation.",
+            "example": 12345,
+            "maximum": 2147483647,
+            "minimum": 0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "style_type": { "$ref": "#/components/schemas/StyleTypeV3" }
+        },
+        "required": ["is_image_safe", "prompt", "resolution", "seed"],
+        "title": "ImageGenerationObjectV3",
+        "type": "object"
+      },
+      "ImageObject": {
+        "example": {
+          "style_type": "REALISTIC",
+          "seed": 12345,
+          "prompt": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+          "resolution": "1024x1024",
+          "url": "https://ideogram.ai/api/images/direct/8YEpFzHuS-S6xXEGmCsf7g",
+          "is_image_safe": true
+        },
+        "properties": {
+          "url": {
+            "description": "The direct link to the image generated.",
+            "example": "https://ideogram.ai/api/images/direct/8YEpFzHuS-S6xXEGmCsf7g",
+            "format": "uri",
+            "nullable": true,
+            "title": "url",
+            "type": "string"
+          },
+          "prompt": {
+            "description": "The prompt used for the generation. This may be different from the original prompt.",
+            "example": "A serene tropical beach scene. Dominating the foreground are tall palm trees with lush green leaves, standing tall against a backdrop of a sandy beach. The beach leads to the azure waters of the sea, which gently kisses the shoreline. In the distance, there's an island or landmass with a silhouette of what appears to be a lighthouse or tower. The sky above is painted with fluffy white clouds, some of which are tinged with hues of pink and orange, suggesting either a sunrise or sunset.",
+            "title": "prompt",
+            "type": "string"
+          },
+          "resolution": {
+            "description": "The resolution of the final image.",
+            "example": "1024x1024",
+            "title": "resolution",
+            "type": "string"
+          },
+          "is_image_safe": {
+            "description": "Whether this request passes safety checks. If false, the url field will be empty.",
+            "title": "is_image_safe",
+            "type": "boolean"
+          },
+          "seed": {
+            "description": "Random seed. Set for reproducible generation.",
+            "example": 12345,
+            "maximum": 2147483647,
+            "minimum": 0,
+            "title": "Seed",
+            "type": "integer"
+          },
+          "style_type": { "$ref": "#/components/schemas/StyleType" }
+        },
+        "required": ["is_image_safe", "prompt", "resolution", "seed"],
+        "title": "ImageObject",
+        "type": "object"
+      },
+      "MagicPromptVersionEnum": {
+        "description": "The magic prompt version to use when magic prompt option is set to AUTO or ON.",
+        "enum": ["V_0", "V_0_1", "V_0_2", "V_0_3", "V_0_4", "V_0_5", "V_0_6", "V_0_7"],
+        "example": "V_0",
+        "title": "MagicPromptVersionEnum",
+        "type": "string"
+      },
+      "ModelEnum": {
+        "default": "V_2",
+        "description": "The model used to generate an image or edit one. /generate and /remix supports all model types, however, /edit is only supported for V_2 and V_2_TURBO.",
+        "enum": ["V_1", "V_1_TURBO", "V_2", "V_2_TURBO", "V_2A", "V_2A_TURBO", "V_3"],
+        "example": "V_2_TURBO",
+        "title": "ModelEnum",
+        "type": "string"
+      },
+      "GenerateImageSafetyError": {
+        "example": { "error": "Prompt provided failed safety check due to the inclusion of prohibited content." },
+        "properties": {
+          "error": {
+            "example": "Prompt provided failed safety check due to the inclusion of prohibited content.",
+            "title": "error",
+            "type": "string"
+          }
+        },
+        "required": ["error"],
+        "title": "GenerateImageSafetyError",
+        "type": "object"
+      },
+      "MagicPromptRequest": {
+        "description": "A request to generate a magic prompt",
+        "example": {
+          "prompt": "a cat",
+          "magic_prompt_version": "V_0_4",
+          "classify_prompt_category": true,
+          "style_type": "AUTO",
+          "seed": 12345
+        },
+        "properties": {
+          "prompt": {
+            "description": "The prompt to enhance with a magic prompt",
+            "example": "a cat",
+            "type": "string"
+          },
+          "magic_prompt_version": { "$ref": "#/components/schemas/MagicPromptVersionEnum" },
+          "classify_prompt_category": {
+            "default": true,
+            "description": "Whether to classify the prompt into a use case category.",
+            "example": false,
+            "type": "boolean"
+          },
+          "style_type": { "$ref": "#/components/schemas/StyleTypeV3" },
+          "seed": { "description": "Random seed for reproducible generation", "example": 12345, "type": "integer" },
+          "character_reference_images": {
+            "description": "A set of images to use as character references. The images should be in JPEG, PNG or WebP format.",
+            "items": { "format": "binary", "type": "string" },
+            "type": "array"
+          },
+          "system_prompt": {
+            "description": "A system prompt to use for the magic prompt.",
+            "example": "You are a helpful assistant that generates magic prompts for images.",
+            "type": "string"
+          }
+        },
+        "required": ["classify_prompt_category", "magic_prompt_version", "prompt"],
+        "title": "MagicPromptRequest",
+        "type": "object"
+      },
+      "MagicPromptResponse": {
+        "description": "The response containing generated magic prompt",
+        "example": {
+          "magic_prompt": "A photorealistic cat with striking green eyes, sitting gracefully on a vintage wooden chair. The cat's fur has beautiful orange and white markings, and soft natural lighting illuminates the scene from a nearby window."
+        },
+        "properties": { "magic_prompt": { "description": "The generated magic prompt", "type": "string" } },
+        "required": ["magic_prompt"],
+        "title": "MagicPromptResponse",
+        "type": "object"
+      },
+      "ImageSafetyError": {
+        "example": { "error": "Image provided failed safety check due to the inclusion of prohibited content." },
+        "properties": {
+          "error": {
+            "example": "Image provided failed safety check due to the inclusion of prohibited content.",
+            "title": "error",
+            "type": "string"
+          }
+        },
+        "required": ["error"],
+        "title": "ImageSafetyError",
+        "type": "object"
+      },
+      "ManageApiSubscriptionResponse": {
+        "example": {
+          "recharge_settings": { "is_active": true },
+          "has_stripe_setup": true,
+          "metronome_dashboard_dark_mode_url": "metronome_dashboard_dark_mode_url",
+          "stripe_billing_url": "stripe_billing_url",
+          "has_accepted_terms": true,
+          "metronome_dashboard_url": "metronome_dashboard_url",
+          "metronome_links": {
+            "usage_iframe_url": "usage_iframe_url",
+            "usage_iframe_dark_mode_url": "usage_iframe_dark_mode_url",
+            "credits_iframe_dark_mode_url": "credits_iframe_dark_mode_url",
+            "invoices_iframe_dark_mode_url": "invoices_iframe_dark_mode_url",
+            "invoices_iframe_url": "invoices_iframe_url",
+            "credits_iframe_url": "credits_iframe_url"
+          }
+        },
+        "properties": {
+          "has_accepted_terms": {
+            "description": "Whether or not the latest required terms have been accepted.",
+            "title": "has_accepted_terms",
+            "type": "boolean"
+          },
+          "has_stripe_setup": {
+            "description": "Whether or not Stripe is setup for API usage.",
+            "title": "has_stripe_setup",
+            "type": "boolean"
+          },
+          "metronome_dashboard_url": {
+            "deprecated": true,
+            "description": "The URL to display the customer usage dashboard.",
+            "title": "metronome_dashboard_url",
+            "type": "string"
+          },
+          "metronome_dashboard_dark_mode_url": {
+            "deprecated": true,
+            "description": "The URL to display the customer usage dashboard, in dark mode.",
+            "title": "metronome_dashboard_dark_mode_url",
+            "type": "string"
+          },
+          "metronome_links": { "$ref": "#/components/schemas/MetronomeLinks" },
+          "recharge_settings": { "$ref": "#/components/schemas/RechargeSettingsResponse" },
+          "stripe_billing_url": {
+            "description": "The URL for the user to manage the existing Stripe subscription plan.",
+            "title": "stripe_billing_url",
+            "type": "string"
+          }
+        },
+        "required": ["has_accepted_terms", "has_stripe_setup"],
+        "title": "ManageApiSubscriptionResponse",
+        "type": "object"
+      },
+      "MetronomeLinks": {
+        "example": {
+          "usage_iframe_url": "usage_iframe_url",
+          "usage_iframe_dark_mode_url": "usage_iframe_dark_mode_url",
+          "credits_iframe_dark_mode_url": "credits_iframe_dark_mode_url",
+          "invoices_iframe_dark_mode_url": "invoices_iframe_dark_mode_url",
+          "invoices_iframe_url": "invoices_iframe_url",
+          "credits_iframe_url": "credits_iframe_url"
+        },
+        "properties": {
+          "invoices_iframe_url": {
+            "description": "The URL to display the customer invoice and API usage.",
+            "title": "invoices_iframe_url",
+            "type": "string"
+          },
+          "invoices_iframe_dark_mode_url": {
+            "description": "The URL to display the customer invoice and API usage.",
+            "title": "invoices_iframe_dark_mode_url",
+            "type": "string"
+          },
+          "credits_iframe_url": {
+            "description": "The URL to display the customer invoice and API usage.",
+            "title": "credits_iframe_url",
+            "type": "string"
+          },
+          "credits_iframe_dark_mode_url": {
+            "description": "The URL to display the customer invoice and API usage.",
+            "title": "credits_iframe_dark_mode_url",
+            "type": "string"
+          },
+          "usage_iframe_url": {
+            "description": "The URL to display the customer usage dashboard.",
+            "title": "usage_iframe_url",
+            "type": "string"
+          },
+          "usage_iframe_dark_mode_url": {
+            "description": "The URL to display the customer usage dashboard, in dark mode.",
+            "title": "usage_iframe_dark_mode_url",
+            "type": "string"
+          }
+        },
+        "title": "MetronomeLinks",
+        "type": "object"
+      },
+      "RechargeSettingsResponse": {
+        "allOf": [{ "$ref": "#/components/schemas/RechargeSettings" }],
+        "example": { "is_active": true },
+        "properties": {
+          "is_active": {
+            "description": "Whether or not the recharge setting is currently active.",
+            "title": "is_active",
+            "type": "boolean"
+          }
+        },
+        "required": ["is_active"],
+        "title": "RechargeSettingsResponse"
+      },
+      "RechargeSettings": {
+        "description": "The current recharge settings for the API subscription.",
+        "example": {
+          "minimum_balance_threshold": { "amount": 1050, "currency_code": "USD" },
+          "top_up_balance": { "amount": 1050, "currency_code": "USD" }
+        },
+        "properties": {
+          "top_up_balance": { "$ref": "#/components/schemas/Price" },
+          "minimum_balance_threshold": { "$ref": "#/components/schemas/Price" }
+        },
+        "required": ["minimum_balance_threshold", "top_up_balance"],
+        "title": "RechargeSettings",
+        "type": "object"
+      },
+      "PostApiSubscriptionResponse": {
+        "description": "The updated API subscription.",
+        "example": { "recharge_settings": { "is_active": true } },
+        "properties": { "recharge_settings": { "$ref": "#/components/schemas/RechargeSettingsResponse" } },
+        "title": "PostApiSubscriptionResponse",
+        "type": "object"
+      },
+      "PostApiSubscriptionError": {
+        "description": "Represents an error when attempting to update the API subscription.",
+        "example": { "messages": ["messages", "messages"] },
+        "properties": {
+          "messages": {
+            "description": "Error messages about what the error could be.",
+            "items": { "description": "An error message, indicating what went wrong.", "type": "string" },
+            "title": "messages",
+            "type": "array"
+          }
+        },
+        "title": "PostApiSubscriptionError",
+        "type": "object"
+      },
+      "PostApiSubscriptionRequest": {
+        "description": "Request to update API settings. Fields which are omitted will be ignored.",
+        "example": {
+          "recharge_settings": {
+            "minimum_balance_threshold": { "amount": 1050, "currency_code": "USD" },
+            "top_up_balance": { "amount": 1050, "currency_code": "USD" }
+          }
+        },
+        "properties": { "recharge_settings": { "$ref": "#/components/schemas/RechargeSettings" } },
+        "title": "PostApiSubscriptionRequest",
+        "type": "object"
+      },
+      "PostApiReactivateResponse": {
+        "description": "Response to re-activating API settings.",
+        "example": { "recharge_settings": { "is_active": true } },
+        "properties": { "recharge_settings": { "$ref": "#/components/schemas/RechargeSettingsResponse" } },
+        "title": "PostApiReactivateResponse",
+        "type": "object"
+      },
+      "GetApiKeysResponse": {
+        "example": {
+          "current_api_keys": [
+            {
+              "creation_time": "2000-01-23T04:56:07+00:00",
+              "redacted_api_key": "vkpDja",
+              "api_key_id": "JRPVD7jWR1aTBYiJ0UFVOg=="
+            },
+            {
+              "creation_time": "2000-01-23T04:56:07+00:00",
+              "redacted_api_key": "vkpDja",
+              "api_key_id": "JRPVD7jWR1aTBYiJ0UFVOg=="
+            }
+          ]
+        },
+        "properties": {
+          "current_api_keys": {
+            "default": [],
+            "description": "The current API keys that are active. Only returns redacted keys.",
+            "items": { "$ref": "#/components/schemas/RedactedApiKey" },
+            "title": "current_api_keys",
+            "type": "array"
+          }
+        },
+        "title": "GetApiKeysResponse",
+        "type": "object"
+      },
+      "RedactedApiKey": {
+        "description": "A representation of an API key that does not contain the full key.",
+        "example": {
+          "creation_time": "2000-01-23T04:56:07+00:00",
+          "redacted_api_key": "vkpDja",
+          "api_key_id": "JRPVD7jWR1aTBYiJ0UFVOg=="
+        },
+        "properties": {
+          "redacted_api_key": {
+            "description": "A redacted text snippet of the API key. Contains the first 4 characters of the API key",
+            "example": "vkpDja",
+            "title": "redacted_api_key",
+            "type": "string"
+          },
+          "creation_time": {
+            "description": "The time at which the key was created",
+            "format": "date-time",
+            "title": "creation_time",
+            "type": "string"
+          },
+          "api_key_id": {
+            "description": "A URL safe base64 encoded UUID",
+            "example": "JRPVD7jWR1aTBYiJ0UFVOg==",
+            "title": "api_key_id",
+            "type": "string"
+          }
+        },
+        "required": ["api_key_id", "creation_time", "redacted_api_key"],
+        "title": "RedactedApiKey",
+        "type": "object"
+      },
+      "PostApiKeyResponse": {
+        "example": {
+          "api_key": "vkpDjaKdMNR8QJ83GjfNvFZJbnoi65XUp70MgZNtA2H9XE8yfDnmr_6BaRyQkF9hnJzu6mUPRLBmqlnZMwetJA",
+          "api_key_id": "JRPVD7jWR1aTBYiJ0UFVOg=="
+        },
+        "properties": {
+          "api_key": {
+            "description": "The API key to use when making authenticated requests with the API. This key will only be shown once.",
+            "example": "vkpDjaKdMNR8QJ83GjfNvFZJbnoi65XUp70MgZNtA2H9XE8yfDnmr_6BaRyQkF9hnJzu6mUPRLBmqlnZMwetJA",
+            "title": "api_key",
+            "type": "string"
+          },
+          "api_key_id": {
+            "description": "The ID of the API key. A URL safe base64 encoded UUID",
+            "example": "JRPVD7jWR1aTBYiJ0UFVOg==",
+            "title": "api_key_id",
+            "type": "string"
+          }
+        },
+        "required": ["api_key", "api_key_id"],
+        "title": "PostApiKeyResponse",
+        "type": "object"
+      },
+      "ManageApiStripeSubscriptionResponse": {
+        "example": { "stripe_subscription_url": "stripe_subscription_url", "stripe_billing_url": "stripe_billing_url" },
+        "properties": {
+          "stripe_subscription_url": {
+            "description": "The URL for the user to checkout the Stripe subscription plan.",
+            "title": "stripe_subscription_url",
+            "type": "string"
+          },
+          "stripe_billing_url": {
+            "deprecated": true,
+            "description": "DEPRECATED. The URL for the user to manage the existing Stripe subscription plan. Get this from ManageApiSubscriptionResponse instead.",
+            "title": "stripe_billing_url",
+            "type": "string"
+          }
+        },
+        "title": "ManageApiStripeSubscriptionResponse",
+        "type": "object"
+      },
+      "GetApiTermsResponse": {
+        "example": { "api_terms": { "terms_url": "terms_url", "terms_id": "terms_id" } },
+        "properties": { "api_terms": { "$ref": "#/components/schemas/ApiTerms" } },
+        "required": ["api_terms"],
+        "title": "GetApiTermsResponse",
+        "type": "object"
+      },
+      "ApiTerms": {
+        "example": { "terms_url": "terms_url", "terms_id": "terms_id" },
+        "properties": {
+          "terms_id": { "description": "The ID of the terms.", "title": "terms_id", "type": "string" },
+          "terms_url": { "description": "The URL where the terms are hosted.", "title": "terms_url", "type": "string" }
+        },
+        "required": ["terms_id", "terms_url"],
+        "title": "ApiTerms",
+        "type": "object"
+      },
+      "PostApiTermsRequest": {
+        "example": { "terms_id": "TOS_2024_04_20" },
+        "properties": {
+          "terms_id": {
+            "description": "The ID of the terms which are being accepted.",
+            "example": "TOS_2024_04_20",
+            "title": "terms_id",
+            "type": "string"
+          }
+        },
+        "required": ["terms_id"],
+        "title": "PostApiTermsRequest",
+        "type": "object"
+      },
+      "PostAddCreditsResponse": {
+        "example": { "amount": { "amount": 1050, "currency_code": "USD" } },
+        "properties": { "amount": { "$ref": "#/components/schemas/Price" } },
+        "required": ["amount"],
+        "title": "PostAddCreditsResponse",
+        "type": "object"
+      },
+      "PostAddCreditsError": {
+        "description": "Represents an error when attempting to add credits to an API user's account.",
+        "example": { "messages": ["messages", "messages"] },
+        "properties": {
+          "messages": {
+            "description": "Error messages about what the error could be.",
+            "items": { "description": "An error message, indicating what went wrong.", "type": "string" },
+            "title": "messages",
+            "type": "array"
+          }
+        },
+        "title": "PostAddCreditsError",
+        "type": "object"
+      },
+      "PostAddCreditsRequest": {
+        "example": { "amount": { "amount": 1050, "currency_code": "USD" } },
+        "properties": { "amount": { "$ref": "#/components/schemas/Price" } },
+        "required": ["amount"],
+        "title": "PostAddCreditsRequest",
+        "type": "object"
+      },
+      "Description": {
+        "example": {
+          "text": "A meticulously illustrated cat with striped patterns, sitting upright. The cat's eyes are a captivating shade of yellow, and it appears to be gazing intently at something. The background consists of abstract, swirling patterns in shades of black, white, and beige, creating an almost fluid or wavy appearance. The cat is positioned in the foreground, with the background elements fading into the distance, giving a sense of depth to the image."
+        },
+        "properties": {
+          "text": {
+            "description": "The generated description for the provided image.",
+            "example": "A meticulously illustrated cat with striped patterns, sitting upright. The cat's eyes are a captivating shade of yellow, and it appears to be gazing intently at something. The background consists of abstract, swirling patterns in shades of black, white, and beige, creating an almost fluid or wavy appearance. The cat is positioned in the foreground, with the background elements fading into the distance, giving a sense of depth to the image.",
+            "title": "text",
+            "type": "string"
+          }
+        },
+        "title": "Description",
+        "type": "object"
+      },
+      "DescribeModelVersion": {
+        "default": "V_3",
+        "description": "The model version to use for describing images. Defaults to V_3.",
+        "enum": ["V_2", "V_3", "CUSTOM"],
+        "title": "DescribeModelVersion",
+        "type": "string"
+      },
+      "MagicPromptOption": {
+        "description": "Determine if MagicPrompt should be used in generating the request or not.",
+        "enum": ["AUTO", "ON", "OFF"],
+        "example": "ON",
+        "externalDocs": { "url": "https://docs.ideogram.ai/using-ideogram/ideogram-features/magic-prompt" },
+        "title": "MagicPromptOption",
+        "type": "string"
+      },
+      "NumImages": {
+        "default": 1,
+        "description": "The number of images to generate.",
+        "maximum": 8,
+        "minimum": 1,
+        "title": "num_images",
+        "type": "integer"
+      },
+      "Seed": {
+        "description": "Random seed. Set for reproducible generation.",
+        "example": 12345,
+        "maximum": 2147483647,
+        "minimum": 0,
+        "title": "Seed",
+        "type": "integer"
+      },
+      "StyleType": {
+        "description": "The style type to generate with; this is only applicable for models V_2 and above and should not be specified for model versions V_1.",
+        "enum": ["AUTO", "GENERAL", "FICTION", "REALISTIC", "DESIGN", "RENDER_3D", "ANIME", "CUSTOM"],
+        "example": "REALISTIC",
+        "title": "StyleType",
+        "type": "string"
+      },
+      "ResolutionV3": {
+        "description": "The resolutions supported for Ideogram 3.0.",
+        "enum": [
+          "512x1536",
+          "576x1408",
+          "576x1472",
+          "576x1536",
+          "640x1344",
+          "640x1408",
+          "640x1472",
+          "640x1536",
+          "704x1152",
+          "704x1216",
+          "704x1280",
+          "704x1344",
+          "704x1408",
+          "704x1472",
+          "736x1312",
+          "768x1088",
+          "768x1216",
+          "768x1280",
+          "768x1344",
+          "800x1280",
+          "832x960",
+          "832x1024",
+          "832x1088",
+          "832x1152",
+          "832x1216",
+          "832x1248",
+          "864x1152",
+          "896x960",
+          "896x1024",
+          "896x1088",
+          "896x1120",
+          "896x1152",
+          "960x832",
+          "960x896",
+          "960x1024",
+          "960x1088",
+          "1024x832",
+          "1024x896",
+          "1024x960",
+          "1024x1024",
+          "1088x768",
+          "1088x832",
+          "1088x896",
+          "1088x960",
+          "1120x896",
+          "1152x704",
+          "1152x832",
+          "1152x864",
+          "1152x896",
+          "1216x704",
+          "1216x768",
+          "1216x832",
+          "1248x832",
+          "1280x704",
+          "1280x768",
+          "1280x800",
+          "1312x736",
+          "1344x640",
+          "1344x704",
+          "1344x768",
+          "1408x576",
+          "1408x640",
+          "1408x704",
+          "1472x576",
+          "1472x640",
+          "1472x704",
+          "1536x512",
+          "1536x576",
+          "1536x640"
+        ],
+        "example": "1280x800",
+        "title": "ResolutionV3",
+        "type": "string"
+      },
+      "AspectRatioV3": {
+        "description": "The aspect ratio to use for image generation, which determines the image's resolution. Cannot be used in conjunction with resolution. Defaults to 1x1.",
+        "enum": [
+          "1x3",
+          "3x1",
+          "1x2",
+          "2x1",
+          "9x16",
+          "16x9",
+          "10x16",
+          "16x10",
+          "2x3",
+          "3x2",
+          "3x4",
+          "4x3",
+          "4x5",
+          "5x4",
+          "1x1"
+        ],
+        "title": "AspectRatioV3",
+        "type": "string"
+      },
+      "RenderingSpeed": {
+        "default": "DEFAULT",
+        "description": "The rendering speed to use.",
+        "enum": ["FLASH", "TURBO", "BALANCED", "DEFAULT", "QUALITY"],
+        "title": "RenderingSpeed",
+        "type": "string"
+      },
+      "ColorPaletteWithPresetNameOrMembers": {
+        "description": "A color palette for generation, must EITHER be specified via one of the presets (name) or explicitly via hexadecimal representations of the color with optional weights (members). Not supported by V_1, V_1_TURBO, V_2A and V_2A_TURBO models.",
+        "oneOf": [
+          { "$ref": "#/components/schemas/ColorPaletteWithPresetName" },
+          { "$ref": "#/components/schemas/ColorPaletteWithMembers" }
+        ],
+        "title": "ColorPaletteWithPresetNameOrMembers"
+      },
+      "ColorPaletteWithPresetName": {
+        "properties": { "name": { "$ref": "#/components/schemas/ColorPalettePresetName" } },
+        "required": ["name"],
+        "title": "ColorPaletteWithPresetName",
+        "type": "object"
+      },
+      "ColorPalettePresetName": {
+        "description": "A color palette preset value.",
+        "enum": ["EMBER", "FRESH", "JUNGLE", "MAGIC", "MELON", "MOSAIC", "PASTEL", "ULTRAMARINE"],
+        "example": "PASTEL",
+        "title": "ColorPalettePresetName",
+        "type": "string"
+      },
+      "ColorPaletteWithMembers": {
+        "description": "A color palette represented only via its members. Cannot be used in conjunction with preset name.",
+        "properties": {
+          "members": {
+            "description": "A list of ColorPaletteMembers that define the color palette. Each color palette member\nconsists of a required color hex and an optional weight between 0.05 and 1.0 (inclusive).\nIt is recommended that these weights descend from highest to lowest for the color hexes provided.\n",
+            "example": [
+              { "ColorPaletteMember": { "color_hex": "#b470b3", "color_weight": 0.49 } },
+              { "ColorPaletteMember": { "color_hex": "#7a79e3", "color_weight": 0.16 } },
+              { "ColorPaletteMember": { "color_hex": "#a26563", "color_weight": 0.1 } },
+              { "ColorPaletteMember": { "color_hex": "#5c7d76", "color_weight": 0.07 } },
+              { "ColorPaletteMember": { "color_hex": "#642a9c", "color_weight": 0.05 } }
+            ],
+            "items": { "$ref": "#/components/schemas/ColorPaletteMember" },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "ColorPaletteMembers",
+            "type": "array"
+          }
+        },
+        "required": ["members"],
+        "title": "ColorPaletteWithMembers",
+        "type": "object"
+      },
+      "ColorPaletteMembers": {
+        "description": "A list of ColorPaletteMembers that define the color palette. Each color palette member\nconsists of a required color hex and an optional weight between 0.05 and 1.0 (inclusive).\nIt is recommended that these weights descend from highest to lowest for the color hexes provided.\n",
+        "example": [
+          { "ColorPaletteMember": { "color_hex": "#b470b3", "color_weight": 0.49 } },
+          { "ColorPaletteMember": { "color_hex": "#7a79e3", "color_weight": 0.16 } },
+          { "ColorPaletteMember": { "color_hex": "#a26563", "color_weight": 0.1 } },
+          { "ColorPaletteMember": { "color_hex": "#5c7d76", "color_weight": 0.07 } },
+          { "ColorPaletteMember": { "color_hex": "#642a9c", "color_weight": 0.05 } }
+        ],
+        "items": { "$ref": "#/components/schemas/ColorPaletteMember" },
+        "maxItems": 8,
+        "minItems": 1,
+        "title": "ColorPaletteMembers",
+        "type": "array"
+      },
+      "ColorPaletteMember": {
+        "description": "A member of a color palette.",
+        "properties": {
+          "color_hex": {
+            "description": "The hexadecimal representation of the color with an optional chosen weight.",
+            "example": "#FFFFFF",
+            "pattern": "^#(?:[0-9a-fA-F]{3}){1,2}$",
+            "title": "color_hex",
+            "type": "string"
+          },
+          "color_weight": {
+            "description": "The weight of the color in the color palette.",
+            "example": 0.25,
+            "maximum": 1.0,
+            "minimum": 0.05,
+            "title": "color_weight",
+            "type": "number"
+          }
+        },
+        "required": ["color_hex"],
+        "title": "ColorPaletteMember",
+        "type": "object"
+      },
+      "StyleCodes": {
+        "description": "A list of 8 character hexadecimal codes representing the style of the image. Cannot be used in conjunction with style_reference_images or style_type.",
+        "example": ["AAFF5733", "0133FF57", "DE3357FF"],
+        "items": { "$ref": "#/components/schemas/StyleCode" },
+        "type": "array"
+      },
+      "StyleCode": {
+        "description": "The 8 character hexadecimal representation of the style code.",
+        "example": "ABCD1234",
+        "pattern": "^[0-9a-fA-F]{8}$",
+        "type": "string"
+      },
+      "StyleTypeV3": {
+        "default": "GENERAL",
+        "description": "The style type to generate with.",
+        "enum": ["AUTO", "GENERAL", "REALISTIC", "DESIGN", "CUSTOM", "FICTION"],
+        "example": "GENERAL",
+        "title": "StyleTypeV3",
+        "type": "string"
+      },
+      "Resolution": {
+        "description": "(For model_version for 2.0 only, cannot be used in conjunction with aspect_ratio) The resolution to use for image generation, represented in width x height. If not specified, defaults to using aspect_ratio.",
+        "enum": [
+          "RESOLUTION_512_1536",
+          "RESOLUTION_576_1408",
+          "RESOLUTION_576_1472",
+          "RESOLUTION_576_1536",
+          "RESOLUTION_640_1024",
+          "RESOLUTION_640_1344",
+          "RESOLUTION_640_1408",
+          "RESOLUTION_640_1472",
+          "RESOLUTION_640_1536",
+          "RESOLUTION_704_1152",
+          "RESOLUTION_704_1216",
+          "RESOLUTION_704_1280",
+          "RESOLUTION_704_1344",
+          "RESOLUTION_704_1408",
+          "RESOLUTION_704_1472",
+          "RESOLUTION_720_1280",
+          "RESOLUTION_736_1312",
+          "RESOLUTION_768_1024",
+          "RESOLUTION_768_1088",
+          "RESOLUTION_768_1152",
+          "RESOLUTION_768_1216",
+          "RESOLUTION_768_1232",
+          "RESOLUTION_768_1280",
+          "RESOLUTION_768_1344",
+          "RESOLUTION_832_960",
+          "RESOLUTION_832_1024",
+          "RESOLUTION_832_1088",
+          "RESOLUTION_832_1152",
+          "RESOLUTION_832_1216",
+          "RESOLUTION_832_1248",
+          "RESOLUTION_864_1152",
+          "RESOLUTION_896_960",
+          "RESOLUTION_896_1024",
+          "RESOLUTION_896_1088",
+          "RESOLUTION_896_1120",
+          "RESOLUTION_896_1152",
+          "RESOLUTION_960_832",
+          "RESOLUTION_960_896",
+          "RESOLUTION_960_1024",
+          "RESOLUTION_960_1088",
+          "RESOLUTION_1024_640",
+          "RESOLUTION_1024_768",
+          "RESOLUTION_1024_832",
+          "RESOLUTION_1024_896",
+          "RESOLUTION_1024_960",
+          "RESOLUTION_1024_1024",
+          "RESOLUTION_1088_768",
+          "RESOLUTION_1088_832",
+          "RESOLUTION_1088_896",
+          "RESOLUTION_1088_960",
+          "RESOLUTION_1120_896",
+          "RESOLUTION_1152_704",
+          "RESOLUTION_1152_768",
+          "RESOLUTION_1152_832",
+          "RESOLUTION_1152_864",
+          "RESOLUTION_1152_896",
+          "RESOLUTION_1216_704",
+          "RESOLUTION_1216_768",
+          "RESOLUTION_1216_832",
+          "RESOLUTION_1232_768",
+          "RESOLUTION_1248_832",
+          "RESOLUTION_1280_704",
+          "RESOLUTION_1280_720",
+          "RESOLUTION_1280_768",
+          "RESOLUTION_1280_800",
+          "RESOLUTION_1312_736",
+          "RESOLUTION_1344_640",
+          "RESOLUTION_1344_704",
+          "RESOLUTION_1344_768",
+          "RESOLUTION_1408_576",
+          "RESOLUTION_1408_640",
+          "RESOLUTION_1408_704",
+          "RESOLUTION_1472_576",
+          "RESOLUTION_1472_640",
+          "RESOLUTION_1472_704",
+          "RESOLUTION_1536_512",
+          "RESOLUTION_1536_576",
+          "RESOLUTION_1536_640"
+        ],
+        "example": "RESOLUTION_1024_1024",
+        "title": "Resolution",
+        "type": "string"
+      },
+      "AspectRatio": {
+        "description": "(Cannot be used in conjunction with resolution) The aspect ratio to use for image generation, which determines the image's resolution. Defaults to ASPECT_1_1.",
+        "enum": [
+          "ASPECT_10_16",
+          "ASPECT_16_10",
+          "ASPECT_9_16",
+          "ASPECT_16_9",
+          "ASPECT_3_2",
+          "ASPECT_2_3",
+          "ASPECT_4_3",
+          "ASPECT_3_4",
+          "ASPECT_1_1",
+          "ASPECT_1_3",
+          "ASPECT_3_1"
+        ],
+        "example": "ASPECT_10_16",
+        "externalDocs": { "url": "https://docs.ideogram.ai/usage/advanced-prompting/aspect-ratios" },
+        "title": "AspectRatio",
+        "type": "string"
+      },
+      "Price": {
+        "description": "Represents a price.",
+        "example": { "amount": 1050, "currency_code": "USD" },
+        "properties": {
+          "currency_code": {
+            "description": "The ISO 4217 currency code for the price object.",
+            "example": "USD",
+            "title": "currency_code",
+            "type": "string"
+          },
+          "amount": {
+            "description": "The amount of the currency in the common denomination. For example, in USD this is cents.",
+            "example": 1050,
+            "title": "amount",
+            "type": "number"
+          }
+        },
+        "required": ["amount", "currency_code"],
+        "title": "Price",
+        "type": "object"
+      },
+      "postInternalTesting_200_response": {
+        "example": { "response_content": "response_content" },
+        "properties": { "response_content": { "title": "response_content", "type": "string" } },
+        "title": "postInternalTesting_200_response",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "description": "API key for access control. Use in the header with the name \\\"Api-Key\\\"",
+        "in": "header",
+        "name": "Api-Key",
+        "type": "apiKey",
+        "x-apikeyInfoFunc": "external_api.generated.openapi.controllers.security_controller.info_from_ApiKeyAuth"
+      },
+      "BearerAuth": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http",
+        "x-bearerInfoFunc": "external_api.generated.openapi.controllers.security_controller.info_from_BearerAuth"
+      }
+    }
+  }
+}

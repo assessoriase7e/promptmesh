@@ -42,6 +42,7 @@
 - Para botões que navegam, envolver em `Link` do Next.js.
 - Criar componentes agnósticos e reutilizáveis.
 - Revalidar dados após alterações.
+- Criar uma arquivo para cada action
 
 ## UI Patterns
 
@@ -82,7 +83,7 @@
 ## Testes
 
 - Não gerar testes automaticamente.
-- Sempre execute yarn build para ver se aparecem erros no terminal.
+- Sempre execute npx tsc --noEmit --skipLibCheck para ver se aparecem erros no terminal.
 
 ## Documentação
 

@@ -1,5 +1,51 @@
 // Tipos principais do PromptMesh
+import { 
+  User as PrismaUser, 
+  Plan as PrismaPlan, 
+  Project as PrismaProject,
+  Node as PrismaNode,
+  Edge as PrismaEdge,
+  Execution as PrismaExecution,
+  NodeExecution as PrismaNodeExecution,
+  Template as PrismaTemplate,
+  File as PrismaFile,
+  NodeType,
+  ExecutionStatus
+} from '@prisma/client'
 
+// Re-exportar tipos do Prisma
+export type { 
+  NodeType, 
+  ExecutionStatus,
+  PrismaUser,
+  PrismaPlan,
+  PrismaProject,
+  PrismaNode,
+  PrismaEdge,
+  PrismaExecution,
+  PrismaNodeExecution,
+  PrismaTemplate,
+  PrismaFile
+}
+
+// Tipos estendidos com relacionamentos
+export type UserWithPlan = PrismaUser & {
+  plan: PrismaPlan | null
+}
+
+export type ProjectWithNodes = PrismaProject & {
+  nodes: PrismaNode[]
+  edges: PrismaEdge[]
+  user: PrismaUser
+}
+
+export type ExecutionWithDetails = PrismaExecution & {
+  user: PrismaUser
+  project: PrismaProject
+  nodeExecutions: PrismaNodeExecution[]
+}
+
+// Tipos legados (manter compatibilidade)
 export interface User {
   id: string;
   email: string;
@@ -21,7 +67,7 @@ export interface UserPlan {
 
 export interface FlowNode {
   id: string;
-  type: "prompt" | "upload" | "parameters" | "output";
+  type: NodeType;
   position: { x: number; y: number };
   data: FlowNodeData;
   selected?: boolean;

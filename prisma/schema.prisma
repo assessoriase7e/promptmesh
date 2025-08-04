@@ -1,0 +1,252 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USUÁRIOS E AUTENTICAÇÃO =====
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique // ID do Clerk para autenticação
+  email     String   @unique
+  name      String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  projects   Project[]
+  executions Execution[]
+  templates  Template[]
+  
+  // Plano e monetização
+  planId     String?
+  plan       Plan?     @relation(fields: [planId], references: [id])
+  credits    Int       @default(0)
+  
+  @@map("users")
+}
+
+// ===== PLANOS E MONETIZAÇÃO =====
+model Plan {
+  id          String  @id @default(cuid())
+  name        String  @unique // "free", "pro", "enterprise"
+  displayName String  // "Gratuito", "Pro", "Enterprise"
+  price       Float   @default(0)
+  credits     Int     @default(0) // Créditos mensais
+  features    Json    // Array de features habilitadas
+  isActive    Boolean @default(true)
+  
+  // Relacionamentos
+  users User[]
+  
+  @@map("plans")
+}
+
+// ===== PROJETOS/FLUXOS =====
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  thumbnail   String?  // URL da thumbnail gerada
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes     Node[]
+  edges     Edge[]
+  executions Execution[]
+  
+  // Metadados do canvas
+  canvasData Json? // Posições, zoom, etc.
+  
+  @@map("projects")
+}
+
+// ===== NODES/CARDS DO CANVAS =====
+model Node {
+  id        String   @id @default(cuid())
+  type      NodeType
+  title     String
+  content   Json     // Conteúdo específico do tipo (prompt, config, etc.)
+  position  Json     // { x: number, y: number }
+  size      Json?    // { width: number, height: number }
+  style     Json?    // Cores, bordas, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Conexões
+  sourceEdges Edge[] @relation("SourceNode")
+  targetEdges Edge[] @relation("TargetNode")
+  
+  // Execuções
+  executions NodeExecution[]
+  
+  @@map("nodes")
+}
+
+enum NodeType {
+  PROMPT_INPUT    // Input de texto/prompt
+  IMAGE_INPUT     // Upload de imagem
+  AI_GENERATOR    // Geração com IA (texto, imagem)
+  IMAGE_EDITOR    // Edição de imagem
+  OUTPUT          // Saída final
+  CONDITION       // Nó condicional
+  LOOP            // Nó de repetição
+  VARIABLE        // Variável/parâmetro
+  API_CALL        // Chamada de API externa
+  TEXT_PROCESSOR  // Processamento de texto
+}
+
+// ===== CONEXÕES ENTRE NODES =====
+model Edge {
+  id       String @id @default(cuid())
+  label    String?
+  style    Json?  // Estilo da conexão
+  animated Boolean @default(false)
+  
+  // Relacionamentos
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  sourceNodeId String
+  sourceNode   Node   @relation("SourceNode", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  
+  targetNodeId String
+  targetNode   Node   @relation("TargetNode", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  
+  // Metadados da conexão
+  sourceHandle String? // Handle específico do source
+  targetHandle String? // Handle específico do target
+  
+  @@map("edges")
+}
+
+// ===== EXECUÇÕES E HISTÓRICO =====
+model Execution {
+  id        String          @id @default(cuid())
+  status    ExecutionStatus @default(PENDING)
+  startedAt DateTime        @default(now())
+  endedAt   DateTime?
+  error     String?
+  metadata  Json?           // Configurações da execução
+  
+  // Relacionamentos
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // Execuções dos nodes individuais
+  nodeExecutions NodeExecution[]
+  
+  // Resultados finais
+  outputs Json? // URLs de arquivos gerados, textos, etc.
+  
+  @@map("executions")
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ===== EXECUÇÃO DE NODES INDIVIDUAIS =====
+model NodeExecution {
+  id        String          @id @default(cuid())
+  status    ExecutionStatus @default(PENDING)
+  startedAt DateTime        @default(now())
+  endedAt   DateTime?
+  error     String?
+  input     Json?           // Input recebido
+  output    Json?           // Output gerado
+  metadata  Json?           // Logs, tempo de execução, etc.
+  
+  // Relacionamentos
+  executionId String
+  execution   Execution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId      String
+  node        Node      @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  
+  @@map("node_executions")
+}
+
+// ===== TEMPLATES SALVOS =====
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  thumbnail   String?
+  category    String?  // "marketing", "design", "content", etc.
+  tags        String[] // Array de tags para busca
+  isPublic    Boolean  @default(false)
+  isOfficial  Boolean  @default(false) // Templates oficiais do PromptMesh
+  downloads   Int      @default(0)
+  likes       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  // Dados do template
+  templateData Json // Estrutura completa do projeto (nodes, edges, etc.)
+  
+  @@map("templates")
+}
+
+// ===== ARQUIVOS E UPLOADS =====
+model File {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  size      Int
+  mimeType  String
+  uploadKey String   @unique // Chave do UploadThing
+  createdAt DateTime @default(now())
+  expiresAt DateTime? // Para arquivos temporários (7 dias)
+  
+  // Metadados
+  metadata Json? // Dimensões de imagem, duração de vídeo, etc.
+  
+  @@map("files")
+}
+
+// ===== CONFIGURAÇÕES DO SISTEMA =====
+model SystemConfig {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Json
+  
+  @@map("system_configs")
+}
+
+// ===== LOGS DE AUDITORIA =====
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String   // "create", "update", "delete", "execute"
+  resource  String   // "project", "node", "execution"
+  resourceId String
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+  
+  @@map("audit_logs")
+}

@@ -4,6 +4,7 @@ import { useCallback, useState, useRef } from "react";
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   addEdge,
@@ -236,7 +237,7 @@ export const FlowCanvas = ({ onSave, onExecute }: FlowCanvasProps) => {
         colorMode="system"
       >
         <Background 
-          variant="dots" 
+          variant={BackgroundVariant.Dots} 
           gap={20} 
           size={1}
           color="hsl(var(--muted-foreground))"
