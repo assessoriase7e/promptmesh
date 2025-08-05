@@ -3,13 +3,16 @@
 import { FlowCanvasProvider } from "@/components/canvas/flow-canvas";
 import { updateProject } from "@/actions/project-actions";
 import { toast } from "sonner";
+import { PromptTemplate, PromptCategory } from "@/types";
 
 interface ProjectEditorProps {
   projectId: string;
   initialData: any;
+  templates: PromptTemplate[];
+  categories: PromptCategory[];
 }
 
-export const ProjectEditor = ({ projectId, initialData }: ProjectEditorProps) => {
+export const ProjectEditor = ({ projectId, initialData, templates, categories }: ProjectEditorProps) => {
   const handleSave = async (nodes: any[], edges: any[]) => {
     try {
       // Preparar dados do canvas para salvamento
@@ -37,6 +40,13 @@ export const ProjectEditor = ({ projectId, initialData }: ProjectEditorProps) =>
   };
 
   return (
-    <FlowCanvasProvider projectId={projectId} initialData={initialData} onSave={handleSave} onExecute={handleExecute} />
+    <FlowCanvasProvider 
+      projectId={projectId} 
+      initialData={initialData} 
+      templates={templates}
+      categories={categories}
+      onSave={handleSave} 
+      onExecute={handleExecute} 
+    />
   );
 };

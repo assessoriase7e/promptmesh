@@ -25,6 +25,7 @@ model User {
   executions Execution[]
   templates  Template[]
   folders    Folder[]
+  promptTemplates PromptTemplate[] @relation("UserPromptTemplates")
   
   // Plano e monetização
   planId     String?
@@ -238,6 +239,42 @@ model Template {
   templateData Json // Estrutura completa do projeto (nodes, edges, etc.)
   
   @@map("templates")
+}
+
+// ===== TEMPLATES DE PROMPTS =====
+model PromptTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  prompt      String   @db.Text
+  categoryId  String
+  tags        String[] // Array de tags para busca
+  usageCount  Int      @default(0)
+  isOfficial  Boolean  @default(false) // Templates oficiais do sistema
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  userId   String?
+  user     User?           @relation("UserPromptTemplates", fields: [userId], references: [id], onDelete: SetNull)
+  category PromptCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  @@map("prompt_templates")
+}
+
+// ===== CATEGORIAS DE PROMPTS =====
+model PromptCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String   // Cor em hex (#6b7280)
+  isSystem    Boolean  @default(false) // Categorias do sistema (não podem ser deletadas)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relacionamentos
+  templates PromptTemplate[]
+  
+  @@map("prompt_categories")
 }
 
 // ===== ARQUIVOS E UPLOADS =====

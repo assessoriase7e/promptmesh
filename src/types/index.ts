@@ -167,10 +167,12 @@ export interface PromptTemplate {
   id: string;
   name: string;
   prompt: string;
-  category: string;
+  categoryId: string;
   tags: string[];
-  createdAt: Date;
   usageCount: number;
+  isOfficial: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface PromptCategory {

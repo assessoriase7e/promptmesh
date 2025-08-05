@@ -20,14 +20,18 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
-import { DragItem } from "@/types";
+import { DragItem, PromptTemplate, PromptCategory } from "@/types";
 import { useUndoRedo } from "@/hooks/use-undo-redo";
+import { Button } from "@/components/ui/button";
+import { Save, Play, Loader2 } from "lucide-react";
+import { FloatingMenu } from "./floating-menu";
 import { PromptNode } from "./nodes/prompt-node";
 import { UploadNode } from "./nodes/upload-node";
 import { ParametersNode } from "./nodes/parameters-node";
 import { OutputNode } from "./nodes/output-node";
 import { UploadPromptNode } from "./nodes/upload-prompt-node";
 import { ResultPromptNode } from "./nodes/result-prompt-node";
+import { PromptProvider } from "@/contexts/prompt-context";
 
 const nodeTypes = {
   prompt: PromptNode,
@@ -122,11 +126,20 @@ const initialEdges: Edge[] = [
 interface FlowCanvasProps {
   projectId?: string;
   initialData?: any;
+  templates?: PromptTemplate[];
+  categories?: PromptCategory[];
   onSave?: (nodes: Node[], edges: Edge[]) => void;
   onExecute?: (nodes: Node[], edges: Edge[]) => void;
 }
 
-export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCanvasProps) => {
+export const FlowCanvas = ({
+  projectId,
+  initialData,
+  templates = [],
+  categories = [],
+  onSave,
+  onExecute,
+}: FlowCanvasProps) => {
   // Usar dados iniciais se fornecidos, senão usar os padrões
   const startingNodes = initialData?.nodes || initialNodes;
   const startingEdges = initialData?.edges || initialEdges;
@@ -135,6 +148,7 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   const [edges, setEdges, onEdgesChange] = useEdgesState(startingEdges);
 
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
@@ -145,22 +159,47 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   const { undo, redo, saveState, canUndo, canRedo } = useUndoRedo(projectId);
   const lastSaveTime = useRef<number>(0);
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const autoSaveInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Função para salvar estado com debounce
-  const debouncedSaveState = useCallback((nodes: Node[], edges: Edge[], delay = 500) => {
-    if (saveTimeout.current) {
-      clearTimeout(saveTimeout.current);
-    }
-    
-    saveTimeout.current = setTimeout(() => {
-      const now = Date.now();
-      // Evitar salvar muito frequentemente (mínimo 300ms entre saves)
-      if (now - lastSaveTime.current > 300) {
-        saveState(nodes, edges);
-        lastSaveTime.current = now;
+  const debouncedSaveState = useCallback(
+    (nodes: Node[], edges: Edge[], delay = 500) => {
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
       }
-    }, delay);
-  }, [saveState]);
+
+      saveTimeout.current = setTimeout(() => {
+        const now = Date.now();
+        // Evitar salvar muito frequentemente (mínimo 300ms entre saves)
+        if (now - lastSaveTime.current > 300) {
+          saveState(nodes, edges);
+          lastSaveTime.current = now;
+        }
+      }, delay);
+    },
+    [saveState]
+  );
+
+  // Função para salvar projeto
+  const handleSave = useCallback(
+    async (isAutoSave = false) => {
+      if (isSaving) return; // Evitar múltiplos saves simultâneos
+
+      setIsSaving(true);
+      try {
+        await onSave?.(nodes, edges);
+        if (!isAutoSave) {
+          // Mostrar feedback visual apenas para save manual
+          console.log("Projeto salvo com sucesso!");
+        }
+      } catch (error) {
+        console.error("Erro ao salvar:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [nodes, edges, onSave, isSaving]
+  );
 
   // Salvar estado inicial
   useEffect(() => {
@@ -169,41 +208,57 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
     }
   }, []); // Apenas na montagem
 
+  // Auto save a cada 5 minutos
+  useEffect(() => {
+    if (onSave) {
+      autoSaveInterval.current = setInterval(() => {
+        handleSave(true); // isAutoSave = true
+      }, 5 * 60 * 1000); // 5 minutos
+
+      return () => {
+        if (autoSaveInterval.current) {
+          clearInterval(autoSaveInterval.current);
+        }
+      };
+    }
+  }, [handleSave, onSave]);
+
   // Função para lidar com mudanças nos nós (apenas local, sem persistência automática)
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
       onNodesChange(changes);
-      
+
       // Verificar se houve mudanças significativas que requerem salvar estado
-      const hasSignificantChanges = changes.some(change => 
-        change.type === 'remove' || 
-        change.type === 'add' ||
-        (change.type === 'position' && 'dragging' in change && !change.dragging) // Salvar apenas quando parar de arrastar
+      const hasSignificantChanges = changes.some(
+        (change) =>
+          change.type === "remove" ||
+          change.type === "add" ||
+          (change.type === "position" && "dragging" in change && !change.dragging) // Salvar apenas quando parar de arrastar
       );
-      
+
       if (hasSignificantChanges) {
         // Usar setTimeout para garantir que o estado foi atualizado
         setTimeout(() => {
-          const isPositionChange = changes.some(c => c.type === 'position');
+          const isPositionChange = changes.some((c) => c.type === "position");
           debouncedSaveState(nodes, edges, isPositionChange ? 100 : 0);
         }, 10);
       }
-      
+
       // Atualizar seleção de nodes
       const selectedNodeIds = changes
-        .filter((change) => change.type === 'select' && change.selected && 'id' in change)
+        .filter((change) => change.type === "select" && change.selected && "id" in change)
         .map((change) => (change as any).id);
-      
+
       if (selectedNodeIds.length > 0) {
         setSelectedNodes(selectedNodeIds);
       } else {
         // Verificar se algum node foi desselecionado
         const deselectedNodeIds = changes
-          .filter((change) => change.type === 'select' && !change.selected && 'id' in change)
+          .filter((change) => change.type === "select" && !change.selected && "id" in change)
           .map((change) => (change as any).id);
-        
+
         if (deselectedNodeIds.length > 0) {
-          setSelectedNodes(prev => prev.filter(id => !deselectedNodeIds.includes(id)));
+          setSelectedNodes((prev) => prev.filter((id) => !deselectedNodeIds.includes(id)));
         }
       }
     },
@@ -214,35 +269,32 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   const handleEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
       onEdgesChange(changes);
-      
+
       // Verificar se houve mudanças significativas que requerem salvar estado
-      const hasSignificantChanges = changes.some(change => 
-        change.type === 'remove' || 
-        change.type === 'add'
-      );
-      
+      const hasSignificantChanges = changes.some((change) => change.type === "remove" || change.type === "add");
+
       if (hasSignificantChanges) {
         // Usar setTimeout para garantir que o estado foi atualizado
         setTimeout(() => {
           debouncedSaveState(nodes, edges, 0);
         }, 10);
       }
-      
+
       // Atualizar seleção de edges
       const selectedEdgeIds = changes
-        .filter((change) => change.type === 'select' && change.selected && 'id' in change)
+        .filter((change) => change.type === "select" && change.selected && "id" in change)
         .map((change) => (change as any).id);
-      
+
       if (selectedEdgeIds.length > 0) {
         setSelectedEdges(selectedEdgeIds);
       } else {
         // Verificar se alguma edge foi desselecionada
         const deselectedEdgeIds = changes
-          .filter((change) => change.type === 'select' && !change.selected && 'id' in change)
+          .filter((change) => change.type === "select" && !change.selected && "id" in change)
           .map((change) => (change as any).id);
-        
+
         if (deselectedEdgeIds.length > 0) {
-          setSelectedEdges(prev => prev.filter(id => !deselectedEdgeIds.includes(id)));
+          setSelectedEdges((prev) => prev.filter((id) => !deselectedEdgeIds.includes(id)));
         }
       }
     },
@@ -323,23 +375,23 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   // Função para deletar elementos selecionados
   const deleteSelectedElements = useCallback(() => {
     let shouldSaveState = false;
-    
+
     if (selectedNodes.length > 0) {
       setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
       // Também remover edges conectadas aos nodes deletados
-      setEdges((eds) => eds.filter((edge) => 
-        !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target)
-      ));
+      setEdges((eds) =>
+        eds.filter((edge) => !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target))
+      );
       setSelectedNodes([]);
       shouldSaveState = true;
     }
-    
+
     if (selectedEdges.length > 0) {
       setEdges((eds) => eds.filter((edge) => !selectedEdges.includes(edge.id)));
       setSelectedEdges([]);
       shouldSaveState = true;
     }
-    
+
     if (shouldSaveState) {
       // Salvar estado após deletar elementos
       setTimeout(() => {
@@ -369,36 +421,97 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
     }
   }, [redo, setNodes, setEdges]);
 
+  // Função para executar node selecionado
+  const handleExecuteSelectedNode = useCallback(async () => {
+    if (selectedNodes.length === 0) {
+      console.log("Nenhum card selecionado para executar");
+      return;
+    }
+
+    if (selectedNodes.length > 1) {
+      console.log("Selecione apenas um card para executar");
+      return;
+    }
+
+    const selectedNodeId = selectedNodes[0];
+    const selectedNode = nodes.find((node) => node.id === selectedNodeId);
+
+    if (!selectedNode) return;
+
+    console.log(`Executando card: ${selectedNode.data.label || selectedNode.type}`);
+    // Aqui você pode implementar a lógica específica para executar um node
+    // Por exemplo, chamar uma função específica baseada no tipo do node
+  }, [selectedNodes, nodes]);
+
+  // Função para selecionar todos os nodes
+  const handleSelectAll = useCallback(() => {
+    const allNodeIds = nodes.map((node) => node.id);
+    setNodes((nodes) => nodes.map((node) => ({ ...node, selected: true })));
+    setSelectedNodes(allNodeIds);
+    console.log(`Selecionados ${allNodeIds.length} cards`);
+  }, [nodes, setNodes]);
+
+  // Função para executar fluxo completo
+  const handleExecute = useCallback(async () => {
+    setIsExecuting(true);
+    try {
+      await onExecute?.(nodes, edges);
+    } finally {
+      setIsExecuting(false);
+    }
+  }, [nodes, edges, onExecute]);
+
   // Handler para teclas de atalho
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       // Verificar se não estamos em um input ou textarea
       const target = event.target as HTMLElement;
-      const isInputElement = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true';
-      
+      const isInputElement =
+        target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.contentEditable === "true";
+
       if (isInputElement) return;
 
-      if (event.key === 'Delete' || event.key === 'Backspace') {
+      if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
         deleteSelectedElements();
       } else if (event.ctrlKey || event.metaKey) {
-        if (event.key === 'z' && !event.shiftKey) {
+        if (event.key === "z" && !event.shiftKey) {
           event.preventDefault();
           handleUndo();
-        } else if ((event.key === 'y') || (event.key === 'z' && event.shiftKey)) {
+        } else if (event.key === "y" || (event.key === "z" && event.shiftKey)) {
           event.preventDefault();
           handleRedo();
+        } else if (event.key === "s") {
+          event.preventDefault();
+          handleSave(false); // Save manual
+        } else if (event.key === "q") {
+          event.preventDefault();
+          handleExecuteSelectedNode(); // Executar card selecionado
+        } else if (event.key === "f") {
+          event.preventDefault();
+          handleExecute(); // Executar fluxo completo
+        } else if (event.key === "a") {
+          event.preventDefault();
+          handleSelectAll(); // Selecionar todos os cards
         }
       }
     },
-    [deleteSelectedElements, handleUndo, handleRedo]
+    [
+      deleteSelectedElements,
+      handleUndo,
+      handleRedo,
+      handleSave,
+      handleExecuteSelectedNode,
+      handleExecute,
+      handleSelectAll,
+    ]
   );
 
   // Adicionar listener de teclado
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleKeyDown]);
 
@@ -458,19 +571,6 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
     [screenToFlowPosition, setNodes, debouncedSaveState, edges]
   );
 
-  const handleSave = useCallback(() => {
-    onSave?.(nodes, edges);
-  }, [nodes, edges, onSave]);
-
-  const handleExecute = useCallback(async () => {
-    setIsExecuting(true);
-    try {
-      await onExecute?.(nodes, edges);
-    } finally {
-      setIsExecuting(false);
-    }
-  }, [nodes, edges, onExecute]);
-
   return (
     <div className="w-full h-full relative" ref={reactFlowWrapper} onDrop={onDrop} onDragOver={onDragOver}>
       <ReactFlow
@@ -521,21 +621,19 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
         />
       </ReactFlow>
 
+      {/* Menu flutuante - canto superior esquerdo */}
+      <FloatingMenu className="absolute top-4 left-4 z-10" />
+
       {/* Toolbar flutuante */}
       <div className="absolute top-4 right-4 flex gap-2 z-10">
-        <button
-          onClick={handleSave}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          Salvar
-        </button>
-        <button
-          onClick={handleExecute}
-          disabled={isExecuting}
-          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
-        >
+        <Button onClick={() => handleSave(false)} disabled={isSaving} size="sm" className="gap-2">
+          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isSaving ? "Salvando..." : "Salvar"}
+        </Button>
+        <Button onClick={handleExecute} disabled={isExecuting} size="sm" variant="secondary" className="gap-2">
+          {isExecuting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
           {isExecuting ? "Executando..." : "Executar"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -543,9 +641,13 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
 
 // Wrapper com Provider
 export const FlowCanvasProvider = (props: FlowCanvasProps) => {
+  const { templates = [], categories = [], ...flowProps } = props;
+
   return (
     <ReactFlowProvider>
-      <FlowCanvas {...props} />
+      <PromptProvider templates={templates} categories={categories}>
+        <FlowCanvas {...flowProps} />
+      </PromptProvider>
     </ReactFlowProvider>
   );
 };

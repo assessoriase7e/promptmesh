@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { BookOpen, Plus, Search, Star, Trash2 } from "lucide-react";
-import { useSavedPrompts } from "@/hooks/use-saved-prompts";
+import { BookOpen, Plus, Search, Star, Trash2, Loader2 } from "lucide-react";
+import { usePromptContext } from "@/contexts/prompt-context";
+import { createPromptTemplate, deletePromptTemplate, usePromptTemplate } from "@/actions/prompt-template-actions";
 import { PromptTemplate } from "@/types";
+import { toast } from "sonner";
 
 interface PromptSelectorProps {
   onSelectPrompt: (prompt: string) => void;
@@ -24,62 +26,121 @@ interface PromptSelectorProps {
 }
 
 export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelectorProps) => {
-  const {
-    templates,
-    categories,
-    isLoading,
-    saveTemplate,
-    useTemplate,
-    deleteTemplate,
-    searchTemplates,
-    getTemplatesByCategory,
-    getMostUsedTemplates,
-  } = useSavedPrompts();
+  const { templates, categories } = usePromptContext();
+  const [isPending, startTransition] = useTransition();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState("");
-  const [newTemplateCategory, setNewTemplateCategory] = useState("general");
+  const [newTemplateCategory, setNewTemplateCategory] = useState("");
   const [newTemplateTags, setNewTemplateTags] = useState("");
 
-  const filteredTemplates = () => {
-    let filtered = searchQuery ? searchTemplates(searchQuery) : templates;
+  // Definir categoria padrão quando as categorias carregarem
+  useState(() => {
+    if (categories.length > 0 && !newTemplateCategory) {
+      setNewTemplateCategory(categories[0]?.id || "");
+    }
+  });
 
+  const filteredTemplates = useMemo(() => {
+    let filtered = templates;
+
+    // Filtrar por busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (template) =>
+          template.name.toLowerCase().includes(query) ||
+          template.prompt.toLowerCase().includes(query) ||
+          template.tags.some((tag) => tag.toLowerCase().includes(query))
+      );
+    }
+
+    // Filtrar por categoria
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((t) => t.category === selectedCategory);
+      filtered = filtered.filter((template) => template.categoryId === selectedCategory);
     }
 
     return filtered;
+  }, [templates, searchQuery, selectedCategory]);
+
+  const mostUsed = useMemo(() => {
+    return templates
+      .filter((template) => template.usageCount > 0)
+      .sort((a, b) => b.usageCount - a.usageCount)
+      .slice(0, 3);
+  }, [templates]);
+
+  const handleSelectTemplate = async (template: PromptTemplate) => {
+    startTransition(async () => {
+      try {
+        await usePromptTemplate(template.id);
+        onSelectPrompt(template.prompt);
+        toast.success("Template aplicado!");
+      } catch (error) {
+        toast.error("Erro ao usar template");
+      }
+    });
   };
 
-  const handleSelectTemplate = (template: PromptTemplate) => {
-    useTemplate(template.id);
-    onSelectPrompt(template.prompt);
+  const handleDeleteTemplate = async (templateId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    
+    startTransition(async () => {
+      try {
+        const result = await deletePromptTemplate(templateId);
+        if (result.success) {
+          toast.success("Template deletado!");
+        } else {
+          toast.error(result.error || "Erro ao deletar template");
+        }
+      } catch (error) {
+        toast.error("Erro ao deletar template");
+      }
+    });
   };
 
-  const handleSaveCurrentPrompt = () => {
-    if (!currentPrompt?.trim() || !newTemplateName.trim()) return;
+  const handleSaveCurrentPrompt = async () => {
+    if (!currentPrompt?.trim() || !newTemplateName.trim() || !newTemplateCategory) return;
 
     const tags = newTemplateTags
       .split(",")
       .map((tag) => tag.trim())
       .filter((tag) => tag.length > 0);
 
-    saveTemplate(newTemplateName, currentPrompt, newTemplateCategory, tags);
+    startTransition(async () => {
+      try {
+        const result = await createPromptTemplate({
+          name: newTemplateName,
+          prompt: currentPrompt,
+          categoryId: newTemplateCategory,
+          tags,
+        });
 
-    // Reset form
-    setNewTemplateName("");
-    setNewTemplateTags("");
-    setIsDialogOpen(false);
+        if (result.success) {
+          toast.success("Template salvo!");
+          // Reset form
+          setNewTemplateName("");
+          setNewTemplateTags("");
+          setIsDialogOpen(false);
+        } else {
+          toast.error(result.error || "Erro ao salvar template");
+        }
+      } catch (error) {
+        toast.error("Erro ao salvar template");
+      }
+    });
   };
 
-  const mostUsed = getMostUsedTemplates(3);
-
-  if (isLoading) {
+  if (templates.length === 0 && categories.length === 0) {
     return (
-      <Button variant="outline" size="sm" disabled>
-        <BookOpen className="h-3 w-3 mr-1" />
+      <Button variant="outline" size="sm" disabled={isPending}>
+        {isPending ? (
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+        ) : (
+          <BookOpen className="h-3 w-3 mr-1" />
+        )}
         Carregando...
       </Button>
     );
@@ -90,8 +151,12 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
       {/* Dropdown de templates */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <BookOpen className="h-3 w-3 mr-1" />
+          <Button variant="outline" size="sm" disabled={isPending}>
+            {isPending ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <BookOpen className="h-3 w-3 mr-1" />
+            )}
             Templates
           </Button>
         </DropdownMenuTrigger>
@@ -110,14 +175,14 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
 
             {/* Filtro por categoria */}
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="h-8">
-                <SelectValue />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Categoria" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name}
+                <SelectItem value="all">Todas</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -160,9 +225,9 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
           )}
 
           {/* Lista de templates */}
-          {filteredTemplates().length > 0 ? (
-            filteredTemplates().map((template) => {
-              const category = categories.find((c) => c.id === template.category);
+          {filteredTemplates.length > 0 ? (
+            filteredTemplates.map((template) => {
+              const category = categories.find((c) => c.id === template.categoryId);
               return (
                 <DropdownMenuItem
                   key={template.id}
@@ -177,10 +242,8 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
                         variant="ghost"
                         size="sm"
                         className="h-4 w-4 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteTemplate(template.id);
-                        }}
+                        onClick={(e) => handleDeleteTemplate(template.id, e)}
+                        disabled={isPending}
                       >
                         <Trash2 className="h-3 w-3" />
                       </Button>
@@ -235,12 +298,12 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
                 <label className="text-sm font-medium">Categoria</label>
                 <Select value={newTemplateCategory} onValueChange={setNewTemplateCategory}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Selecione uma categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -266,7 +329,13 @@ export const PromptSelector = ({ onSelectPrompt, currentPrompt }: PromptSelector
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSaveCurrentPrompt} disabled={!newTemplateName.trim()}>
+              <Button 
+                onClick={handleSaveCurrentPrompt} 
+                disabled={isPending || !newTemplateName.trim() || !newTemplateCategory}
+              >
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : null}
                 Salvar Template
               </Button>
             </DialogFooter>
