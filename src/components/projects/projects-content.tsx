@@ -16,7 +16,9 @@ import {
   Trash2,
   Move,
   Calendar,
-  Play
+  Play,
+  ArrowLeft,
+  ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { CreateFolderDialog } from './create-folder-dialog';
@@ -28,6 +30,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDroppable } from "@dnd-kit/core";
+import { moveProjectToFolder } from "@/actions/folder-actions";
+import { toast } from "sonner";
 
 interface Project {
   id: string;
@@ -72,6 +77,113 @@ export const ProjectsContent = ({ projects, folders }: ProjectsContentProps) => 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [loadingFolderId, setLoadingFolderId] = useState<string | null>(null);
+
+  // Funções de drag and drop
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+    setIsDragging(true);
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    setActiveId(null);
+    setIsDragging(false);
+
+    if (!over) return;
+
+    const projectId = active.id as string;
+    const folderId = over.id as string;
+
+    // Se soltar sobre uma pasta
+    if (folderId.startsWith('folder-')) {
+      const targetFolderId = folderId.replace('folder-', '');
+      setLoadingFolderId(targetFolderId);
+      
+      try {
+        const result = await moveProjectToFolder(projectId, targetFolderId);
+        
+        if (result.success) {
+          toast.success("Projeto movido com sucesso!");
+        } else {
+          toast.error(result.error || "Erro ao mover projeto");
+        }
+      } catch (error) {
+        console.error("Erro ao mover projeto:", error);
+        toast.error("Erro ao mover projeto");
+      } finally {
+        setLoadingFolderId(null);
+      }
+    }
+    // Se soltar fora de uma pasta (área geral)
+    else if (folderId === 'no-folder-area') {
+      try {
+        const result = await moveProjectToFolder(projectId, undefined);
+        
+        if (result.success) {
+          toast.success("Projeto removido da pasta!");
+        } else {
+          toast.error(result.error || "Erro ao mover projeto");
+        }
+      } catch (error) {
+        console.error("Erro ao mover projeto:", error);
+        toast.error("Erro ao mover projeto");
+      }
+    }
+  };
+
+  // Componente para área de drop de projetos sem pasta
+  function NoFolderDropArea({ children }: { children: React.ReactNode }) {
+    const { isOver, setNodeRef } = useDroppable({
+      id: 'no-folder-area',
+    });
+
+    return (
+      <div 
+        ref={setNodeRef}
+        className={`transition-all duration-200 ${
+          isOver && isDragging ? 'bg-muted/50 border-2 border-dashed border-primary rounded-lg p-2' : ''
+        }`}
+      >
+        {children}
+      </div>
+    );
+  }
+
+  // Componente para remover projetos de pastas
+  function RemoveFromFolderDropArea() {
+    const { isOver, setNodeRef } = useDroppable({
+      id: 'no-folder-area',
+    });
+
+    if (!isDragging || selectedFolder === null || selectedFolder === 'all') {
+      return null;
+    }
+
+    return (
+      <div 
+        ref={setNodeRef}
+        className={`mb-6 p-6 border-2 border-dashed rounded-lg transition-all duration-200 ${
+          isOver 
+            ? 'border-primary bg-primary/10 scale-105' 
+            : 'border-muted-foreground/30 bg-muted/20'
+        }`}
+      >
+        <div className="text-center">
+          <Move className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+          <p className="font-medium text-sm">
+            {isOver ? 'Solte aqui para remover da pasta' : 'Arrastar aqui para remover da pasta'}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            O projeto ficará sem pasta
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Filtrar projetos por pasta selecionada e termo de busca
   const filteredProjects = projects.filter(project => {
@@ -90,12 +202,16 @@ export const ProjectsContent = ({ projects, folders }: ProjectsContentProps) => 
     }
   });
 
+  // Encontrar o projeto que está sendo arrastado
+  const activeProject = activeId ? filteredProjects.find(p => p.id === activeId) : null;
+
   // Filtrar pastas principais (sem pai)
   const rootFolders = folders.filter(folder => !folder.parentId);
 
   return (
-    <div className="h-full p-6 overflow-auto">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="h-full p-6 overflow-auto">
+        <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
@@ -119,6 +235,34 @@ export const ProjectsContent = ({ projects, folders }: ProjectsContentProps) => 
             </Link>
           </div>
         </div>
+
+        {/* Breadcrumb de navegação quando visualizando pasta específica */}
+        {selectedFolder && selectedFolder !== 'all' && (
+          <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedFolder(null)}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Voltar
+            </Button>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: rootFolders.find(f => f.id === selectedFolder)?.color || '#6b7280' }}
+              />
+              <span className="font-medium">
+                {rootFolders.find(f => f.id === selectedFolder)?.name}
+              </span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              ({filteredProjects.length} projeto{filteredProjects.length !== 1 ? 's' : ''})
+            </span>
+          </div>
+        )}
 
         {/* Filtros e Busca */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
@@ -241,66 +385,123 @@ export const ProjectsContent = ({ projects, folders }: ProjectsContentProps) => 
                   key={folder.id} 
                   folder={folder}
                   onClick={() => setSelectedFolder(folder.id)}
+                  isLoading={loadingFolderId === folder.id}
                 />
               ))}
             </div>
           </div>
         )}
 
+        {/* Área para remover projetos de pastas */}
+        <RemoveFromFolderDropArea />
+
         {/* Lista de Projetos */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">
-              {selectedFolder === 'all' 
-                ? 'Todos os Projetos' 
-                : selectedFolder === null 
-                  ? 'Projetos sem Pasta'
-                  : `Projetos em "${rootFolders.find(f => f.id === selectedFolder)?.name}"`
-              }
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {filteredProjects.length} projeto{filteredProjects.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          
-          {filteredProjects.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">
-                  {searchTerm ? 'Nenhum projeto encontrado' : 'Nenhum projeto ainda'}
-                </h3>
-                <p className="text-muted-foreground mb-4">
-                  {searchTerm 
-                    ? 'Tente ajustar os termos de busca ou filtros.'
-                    : 'Comece criando seu primeiro projeto de fluxo visual.'
+        {(selectedFolder === null || selectedFolder === 'all') ? (
+          // Com funcionalidade de drag and drop para projetos sem pasta ou visualização geral
+          <NoFolderDropArea>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold">
+                  {selectedFolder === 'all' 
+                    ? 'Todos os Projetos' 
+                    : 'Projetos sem Pasta'
                   }
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {filteredProjects.length} projeto{filteredProjects.length !== 1 ? 's' : ''}
                 </p>
-                {!searchTerm && (
-                  <Link href="/projects/new">
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Criar Primeiro Projeto
-                    </Button>
-                  </Link>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredProjects.map(project => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+              </div>
+              
+              {filteredProjects.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">
+                      {searchTerm ? 'Nenhum projeto encontrado' : 'Nenhum projeto ainda'}
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      {searchTerm 
+                        ? 'Tente ajustar os termos de busca ou filtros.'
+                        : 'Comece criando seu primeiro projeto de fluxo visual.'
+                      }
+                    </p>
+                    {!searchTerm && (
+                      <Link href="/projects/new">
+                        <Button>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Criar Primeiro Projeto
+                        </Button>
+                      </Link>
+                    )}
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {filteredProjects.map(project => (
+                    <ProjectCard key={project.id} project={project} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </NoFolderDropArea>
+        ) : (
+          // Sem funcionalidade de drag and drop quando visualizando pasta específica
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">
+                Projetos em "{rootFolders.find(f => f.id === selectedFolder)?.name}"
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {filteredProjects.length} projeto{filteredProjects.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            
+            {filteredProjects.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium mb-2">
+                    {searchTerm ? 'Nenhum projeto encontrado' : 'Nenhum projeto nesta pasta'}
+                  </h3>
+                  <p className="text-muted-foreground mb-4">
+                    {searchTerm 
+                      ? 'Tente ajustar os termos de busca.'
+                      : 'Arraste projetos para esta pasta ou crie um novo projeto.'
+                    }
+                  </p>
+                  {!searchTerm && (
+                    <Link href="/projects/new">
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Novo Projeto
+                      </Button>
+                    </Link>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {filteredProjects.map(project => (
+                  <ProjectCard key={project.id} project={project} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Dialog de Criar Pasta */}
         <CreateFolderDialog 
           open={showCreateFolder} 
           onOpenChange={setShowCreateFolder}
         />
+        </div>
       </div>
-    </div>
+      
+      <DragOverlay>
+        {activeProject && (
+          <ProjectCard project={activeProject} />
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 };

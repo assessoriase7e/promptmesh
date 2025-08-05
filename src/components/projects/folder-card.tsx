@@ -9,7 +9,8 @@ import {
   Edit,
   Trash2,
   FileText,
-  FolderOpen
+  FolderOpen,
+  Loader
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -18,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useDroppable } from '@dnd-kit/core';
 
 interface Folder {
   id: string;
@@ -37,10 +39,15 @@ interface Folder {
 interface FolderCardProps {
   folder: Folder;
   onClick?: () => void;
+  isLoading?: boolean;
 }
 
-export const FolderCard = ({ folder, onClick }: FolderCardProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+export const FolderCard = ({ folder, onClick, isLoading = false }: FolderCardProps) => {
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const { isOver, setNodeRef } = useDroppable({
+    id: `folder-${folder.id}`,
+  });
 
   const handleEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -53,20 +60,23 @@ export const FolderCard = ({ folder, onClick }: FolderCardProps) => {
     
     if (!confirm('Tem certeza que deseja excluir esta pasta?')) return;
     
-    setIsLoading(true);
+    setIsDeleting(true);
     try {
       // TODO: Implementar exclusão de pasta
       console.log('Excluir pasta:', folder.id);
     } catch (error) {
       console.error('Erro ao excluir pasta:', error);
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
   };
 
   return (
     <Card 
-      className="group hover:shadow-md transition-all cursor-pointer hover:scale-105"
+      ref={setNodeRef}
+      className={`group hover:shadow-md transition-all cursor-pointer hover:scale-105 ${
+        isOver ? 'ring-2 ring-primary ring-offset-2 bg-primary/5' : ''
+      } ${isLoading ? 'opacity-75' : ''}`}
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -76,10 +86,17 @@ export const FolderCard = ({ folder, onClick }: FolderCardProps) => {
               className="p-2 rounded-lg"
               style={{ backgroundColor: `${folder.color || '#6b7280'}20` }}
             >
-              <Folder 
-                className="h-5 w-5" 
-                style={{ color: folder.color || '#6b7280' }}
-              />
+              {isLoading ? (
+                <Loader 
+                  className="h-5 w-5 animate-spin" 
+                  style={{ color: folder.color || '#6b7280' }}
+                />
+              ) : (
+                <Folder 
+                  className="h-5 w-5" 
+                  style={{ color: folder.color || '#6b7280' }}
+                />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <h3 className="font-medium truncate">{folder.name}</h3>
@@ -92,7 +109,7 @@ export const FolderCard = ({ folder, onClick }: FolderCardProps) => {
                 variant="ghost" 
                 size="sm" 
                 className="opacity-0 group-hover:opacity-100 transition-opacity"
-                disabled={isLoading}
+                disabled={isLoading || isDeleting}
                 onClick={(e) => e.stopPropagation()}
               >
                 <MoreVertical className="h-4 w-4" />
@@ -106,7 +123,7 @@ export const FolderCard = ({ folder, onClick }: FolderCardProps) => {
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 onClick={handleDelete} 
-                disabled={isLoading}
+                disabled={isDeleting}
                 className="text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-2" />

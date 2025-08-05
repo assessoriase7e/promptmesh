@@ -130,12 +130,19 @@
 .react-flow__edges svg,
 .react-flow__edges g,
 .react-flow__edges path {
-  stroke: #5c5c5c !important;
   stroke-width: 1 !important;
   fill: none !important;
   opacity: 1 !important;
   visibility: visible !important;
   display: block !important;
+}
+
+.react-flow__edge-path,
+.react-flow__edge path,
+.react-flow__edges svg,
+.react-flow__edges g,
+.react-flow__edges path {
+  @apply !stroke-primary;
 }
 
 @layer base {

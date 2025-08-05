@@ -83,60 +83,63 @@ export const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
             </Button>
           </div>
 
-          {/* Navegação principal */}
-          <nav className="flex-1 p-4 space-y-2">
-            {sidebarItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.path;
+          {/* Área com scroll para navegação e componentes */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Navegação principal */}
+            <nav className="p-4 space-y-2">
+              {sidebarItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.path;
 
-              return (
-                <Link key={item.id} href={item.path}>
-                  <Button
-                    variant={isActive ? "secondary" : "ghost"}
-                    className={cn(
-                      "w-full justify-start h-auto p-3 flex-col items-start gap-1",
-                      isActive && "bg-secondary"
-                    )}
-                    onClick={onClose}
-                  >
-                    <div className="flex items-center gap-3 w-full">
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className="font-medium">{item.label}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground ml-8">{item.description}</span>
-                  </Button>
-                </Link>
-              );
-            })}
-          </nav>
+                return (
+                  <Link key={item.id} href={item.path}>
+                    <Button
+                      variant={isActive ? "secondary" : "ghost"}
+                      className={cn(
+                        "w-full justify-start h-auto p-3 flex-col items-start gap-1",
+                        isActive && "bg-secondary"
+                      )}
+                      onClick={onClose}
+                    >
+                      <div className="flex items-center gap-3 w-full">
+                        <Icon className="h-5 w-5 shrink-0" />
+                        <span className="font-medium">{item.label}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-8">{item.description}</span>
+                    </Button>
+                  </Link>
+                );
+              })}
+            </nav>
 
-          {/* Componentes Draggable - só aparecem na rota do editor */}
-          {isEditorRoute && (
-            <div className="px-3 py-4 border-t">
-              <div className="flex items-center gap-2 mb-3">
-                <Plus className="h-4 w-4" />
-                <h3 className="font-medium text-sm">Componentes</h3>
-              </div>
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Básicos</h4>
-                  <PromptCard />
-                  <UploadCard />
-                  <ParametersCard />
-                  <OutputCard />
+            {/* Componentes Draggable - só aparecem na rota do editor */}
+            {isEditorRoute && (
+              <div className="px-3 py-4 border-t">
+                <div className="flex items-center gap-2 mb-3">
+                  <Plus className="h-4 w-4" />
+                  <h3 className="font-medium text-sm">Componentes</h3>
                 </div>
+                <div className="space-y-3 pb-4">
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Básicos</h4>
+                    <PromptCard />
+                    <UploadCard />
+                    <ParametersCard />
+                    <OutputCard />
+                  </div>
 
-                <div className="space-y-2 pt-3 border-t">
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avançados</h4>
-                  <UploadPromptCard />
-                  <ResultPromptCard />
+                  <div className="space-y-2 pt-3 border-t">
+                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avançados</h4>
+                    <UploadPromptCard />
+                    <ResultPromptCard />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Footer da sidebar */}
-          <div className="p-4 border-t">
+          {/* Footer da sidebar - fixo na parte inferior */}
+          <div className="p-4 border-t bg-background">
             <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
