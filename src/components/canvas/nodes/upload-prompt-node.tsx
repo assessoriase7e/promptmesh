@@ -153,7 +153,7 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
         position={Position.Right}
         id="upload-prompt-output"
         color="#ea580c"
-        style={{ top: "50%", right: "-8px" }}
+        style={{ top: "50%", right: "-2px" }}
       />
     </div>
   );

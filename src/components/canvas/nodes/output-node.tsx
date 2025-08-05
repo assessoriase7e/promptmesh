@@ -56,7 +56,7 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
   };
 
   return (
-    <div className="relative">
+    <div>
       <Card className={`w-80 ${selected ? "ring-2 ring-primary" : ""}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -87,10 +87,10 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
 
           {/* Preview das imagens geradas */}
           {outputs.length > 0 && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3 w-full">
+              <div className="grid grid-cols-2 gap-2 w-full">
                 {outputs.slice(0, 4).map((url, index) => (
-                  <div key={index} className="relative group">
+                  <div key={index} className="relative group w-full">
                     <img src={url} alt={`Output ${index + 1}`} className="w-full h-20 object-cover rounded border" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center gap-1">
                       <Button
@@ -146,21 +146,9 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
       </Card>
 
       {/* Handles para conexões - posicionados na lateral do card */}
-      <ThemedHandle
-        type="target"
-        position={Position.Left}
-        id="output-input"
-        color="#f59e0b"
-        style={{ top: "50%", left: "-8px" }}
-      />
+      <ThemedHandle type="target" position={Position.Left} id="output-input" style={{ top: "50%", left: "-2px" }} />
       {/* Handle de saída para continuar a cadeia */}
-      <ThemedHandle
-        type="source"
-        position={Position.Right}
-        id="output-output"
-        color="#f59e0b"
-        style={{ top: "50%", right: "-8px" }}
-      />
+      <ThemedHandle type="source" position={Position.Right} id="output-output" style={{ top: "50%", right: "-2px" }} />
     </div>
   );
 };

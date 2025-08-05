@@ -114,7 +114,7 @@ export const UploadNode = ({ data, selected }: NodeProps<any>) => {
         position={Position.Right}
         id="upload-output"
         color="#06b6d4"
-        style={{ top: "50%", right: "-8px" }}
+        style={{ top: "50%", right: "-2px" }}
       />
     </div>
   );

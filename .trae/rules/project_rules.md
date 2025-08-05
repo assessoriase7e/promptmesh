@@ -45,6 +45,7 @@
 - Criar componentes agnósticos e reutilizáveis.
 - Revalidar dados após alterações.
 - Criar uma arquivo para cada action
+- Observe as classes do shadcn, pois algumas classes não precisam ser usadas, como forças cores de fundo, de textos e etc, pois o shadcn já atribui cores a esses elementos.
 
 ## UI Patterns
 

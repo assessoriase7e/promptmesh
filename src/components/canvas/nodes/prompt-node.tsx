@@ -102,7 +102,7 @@ export const PromptNode = ({ data, selected, id }: NodeProps<any>) => {
         position={Position.Right}
         id="prompt-output"
         color="#8b5cf6"
-        style={{ top: "50%", right: "-8px" }}
+        style={{ top: "50%", right: "-2px" }}
       />
     </div>
   );
