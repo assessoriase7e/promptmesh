@@ -8,13 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Menu, Keyboard } from "lucide-react";
 
 interface FloatingMenuProps {
@@ -30,21 +24,21 @@ export const FloatingMenu = ({ className }: FloatingMenuProps) => {
       items: [
         { key: "Ctrl + A", description: "Selecionar todos os cards" },
         { key: "Delete / Backspace", description: "Deletar elementos selecionados" },
-      ]
+      ],
     },
     {
       category: "Execução",
       items: [
         { key: "Ctrl + Q", description: "Executar card selecionado" },
         { key: "Ctrl + F", description: "Executar fluxo completo" },
-      ]
+      ],
     },
     {
       category: "Salvamento",
       items: [
         { key: "Ctrl + S", description: "Salvar projeto manualmente" },
         { key: "Auto Save", description: "Salvamento automático a cada 5 minutos" },
-      ]
+      ],
     },
     {
       category: "Histórico",
@@ -52,7 +46,7 @@ export const FloatingMenu = ({ className }: FloatingMenuProps) => {
         { key: "Ctrl + Z", description: "Desfazer última ação" },
         { key: "Ctrl + Y", description: "Refazer ação" },
         { key: "Ctrl + Shift + Z", description: "Refazer ação (alternativo)" },
-      ]
+      ],
     },
     {
       category: "Canvas",
@@ -61,8 +55,13 @@ export const FloatingMenu = ({ className }: FloatingMenuProps) => {
         { key: "Mouse Wheel", description: "Zoom in/out" },
         { key: "Drag", description: "Mover canvas" },
         { key: "Drag & Drop", description: "Adicionar novos cards ao canvas" },
-      ]
-    }
+        { key: "Ctrl + C", description: "Copiar elementos selecionados" },
+        { key: "Ctrl + V", description: "Colar elementos copiados" },
+        { key: "Ctrl + D", description: "Duplicar elementos selecionados" },
+        { key: "Ctrl + Q", description: "Executar node selecionado" },
+        { key: "Ctrl + F", description: "Executar fluxo completo" },
+      ],
+    },
   ];
 
   return (
@@ -70,20 +69,13 @@ export const FloatingMenu = ({ className }: FloatingMenuProps) => {
       <div className={className}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-2 bg-background/80 backdrop-blur-sm border-border/50"
-            >
+            <Button size="sm" variant="outline" className="gap-2 bg-background/80 backdrop-blur-sm border-border/50">
               <Menu className="h-4 w-4" />
               Menu
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-48">
-            <DropdownMenuItem
-              onClick={() => setIsCommandsModalOpen(true)}
-              className="gap-2"
-            >
+            <DropdownMenuItem onClick={() => setIsCommandsModalOpen(true)} className="gap-2">
               <Keyboard className="h-4 w-4" />
               Comandos
             </DropdownMenuItem>
@@ -98,11 +90,9 @@ export const FloatingMenu = ({ className }: FloatingMenuProps) => {
               <Keyboard className="h-5 w-5" />
               Comandos do Canvas
             </DialogTitle>
-            <DialogDescription>
-              Lista completa de atalhos e comandos disponíveis no editor de fluxo
-            </DialogDescription>
+            <DialogDescription>Lista completa de atalhos e comandos disponíveis no editor de fluxo</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {commands.map((category, categoryIndex) => (
               <div key={categoryIndex} className="space-y-3">

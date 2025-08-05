@@ -152,6 +152,7 @@ export const FlowCanvas = ({
   const [isConnecting, setIsConnecting] = useState(false);
   const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  const [clipboard, setClipboard] = useState<Node[]>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
@@ -443,6 +444,72 @@ export const FlowCanvas = ({
     // Por exemplo, chamar uma função específica baseada no tipo do node
   }, [selectedNodes, nodes]);
 
+  // Função para copiar nodes selecionados
+  const handleCopy = useCallback(() => {
+    const selectedNodesList = nodes.filter((node) => selectedNodes.includes(node.id));
+    if (selectedNodesList.length === 0) return;
+
+    setClipboard(selectedNodesList);
+    console.log(`Copiados ${selectedNodesList.length} cards`);
+  }, [nodes, selectedNodes]);
+
+  // Função para colar nodes do clipboard
+  const handlePaste = useCallback(() => {
+    if (clipboard.length === 0) return;
+
+    const newNodes = clipboard.map((node) => ({
+      ...node,
+      id: `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      position: {
+        x: node.position.x + 50, // Offset para não sobrepor
+        y: node.position.y + 50,
+      },
+      selected: true, // Selecionar os nodes colados
+    }));
+
+    setNodes((nds) => {
+      const updatedNodes = nds.map((node) => ({ ...node, selected: false })).concat(newNodes);
+      // Salvar estado após colar
+      setTimeout(() => {
+        debouncedSaveState(updatedNodes, edges, 0);
+      }, 10);
+      return updatedNodes;
+    });
+
+    // Atualizar nodes selecionados
+    setSelectedNodes(newNodes.map((node) => node.id));
+    console.log(`Colados ${newNodes.length} cards`);
+  }, [clipboard, setNodes, debouncedSaveState, edges]);
+
+  // Função para duplicar nodes selecionados
+  const handleDuplicate = useCallback(() => {
+    const selectedNodesList = nodes.filter((node) => selectedNodes.includes(node.id));
+    if (selectedNodesList.length === 0) return;
+
+    const duplicatedNodes = selectedNodesList.map((node) => ({
+      ...node,
+      id: `${node.type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      position: {
+        x: node.position.x + 50, // Offset para não sobrepor
+        y: node.position.y + 50,
+      },
+      selected: true, // Selecionar os nodes duplicados
+    }));
+
+    setNodes((nds) => {
+      const updatedNodes = nds.map((node) => ({ ...node, selected: false })).concat(duplicatedNodes);
+      // Salvar estado após duplicar
+      setTimeout(() => {
+        debouncedSaveState(updatedNodes, edges, 0);
+      }, 10);
+      return updatedNodes;
+    });
+
+    // Atualizar nodes selecionados
+    setSelectedNodes(duplicatedNodes.map((node) => node.id));
+    console.log(`Duplicados ${duplicatedNodes.length} cards`);
+  }, [nodes, selectedNodes, setNodes, debouncedSaveState, edges]);
+
   // Função para selecionar todos os nodes
   const handleSelectAll = useCallback(() => {
     const allNodeIds = nodes.map((node) => node.id);
@@ -493,6 +560,15 @@ export const FlowCanvas = ({
         } else if (event.key === "a") {
           event.preventDefault();
           handleSelectAll(); // Selecionar todos os cards
+        } else if (event.key === "c") {
+          event.preventDefault();
+          handleCopy(); // Copiar cards selecionados
+        } else if (event.key === "v") {
+          event.preventDefault();
+          handlePaste(); // Colar cards do clipboard
+        } else if (event.key === "d") {
+          event.preventDefault();
+          handleDuplicate(); // Duplicar cards selecionados
         }
       }
     },
@@ -504,6 +580,9 @@ export const FlowCanvas = ({
       handleExecuteSelectedNode,
       handleExecute,
       handleSelectAll,
+      handleCopy,
+      handlePaste,
+      handleDuplicate,
     ]
   );
 
