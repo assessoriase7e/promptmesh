@@ -218,9 +218,141 @@ async function main() {
     },
   })
 
+  // Criar categorias de prompts para geração de imagens e vídeos
+  const portraitCategory = await prisma.promptCategory.upsert({
+    where: { name: 'Retratos' },
+    update: {},
+    create: {
+      name: 'Retratos',
+      description: 'Templates para geração de retratos e pessoas',
+      color: '#3B82F6',
+    },
+  })
+
+  const landscapeCategory = await prisma.promptCategory.upsert({
+    where: { name: 'Paisagens' },
+    update: {},
+    create: {
+      name: 'Paisagens',
+      description: 'Templates para paisagens e cenários',
+      color: '#10B981',
+    },
+  })
+
+  const artCategory = await prisma.promptCategory.upsert({
+    where: { name: 'Arte Digital' },
+    update: {},
+    create: {
+      name: 'Arte Digital',
+      description: 'Templates para arte conceitual e digital',
+      color: '#8B5CF6',
+    },
+  })
+
+  const productCategory = await prisma.promptCategory.upsert({
+    where: { name: 'Produtos' },
+    update: {},
+    create: {
+      name: 'Produtos',
+      description: 'Templates para fotografia de produtos',
+      color: '#F59E0B',
+    },
+  })
+
+  const videoCategory = await prisma.promptCategory.upsert({
+    where: { name: 'Vídeos' },
+    update: {},
+    create: {
+      name: 'Vídeos',
+      description: 'Templates para geração de vídeos',
+      color: '#EF4444',
+    },
+  })
+
+  // Criar templates de prompts para geração de imagens e vídeos
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-retrato-profissional' },
+    update: {},
+    create: {
+      id: 'prompt-retrato-profissional',
+      name: 'Retrato Profissional',
+      prompt: 'Professional headshot of a [IDADE] year old [GÊNERO], [ETNIA], wearing [ROUPA], [EXPRESSÃO] expression, studio lighting, clean background, high resolution, photorealistic, shot with 85mm lens, shallow depth of field',
+      categoryId: portraitCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-paisagem-natural' },
+    update: {},
+    create: {
+      id: 'prompt-paisagem-natural',
+      name: 'Paisagem Natural',
+      prompt: '[TIPO_PAISAGEM] landscape during [HORA_DO_DIA], [CLIMA], dramatic lighting, vibrant colors, ultra-wide angle, high detail, 8K resolution, cinematic composition, [ELEMENTOS_EXTRAS]',
+      categoryId: landscapeCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-arte-conceitual' },
+    update: {},
+    create: {
+      id: 'prompt-arte-conceitual',
+      name: 'Arte Conceitual',
+      prompt: '[CONCEITO] in the style of [ESTILO_ARTÍSTICO], digital art, concept art, detailed illustration, vibrant colors, dynamic composition, [MOOD], trending on artstation, 4K',
+      categoryId: artCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-produto-comercial' },
+    update: {},
+    create: {
+      id: 'prompt-produto-comercial',
+      name: 'Fotografia de Produto',
+      prompt: 'Commercial product photography of [PRODUTO], clean white background, professional studio lighting, high resolution, sharp focus, minimalist composition, [ÂNGULO], photorealistic, e-commerce style',
+      categoryId: productCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-video-promocional' },
+    update: {},
+    create: {
+      id: 'prompt-video-promocional',
+      name: 'Vídeo Promocional',
+      prompt: 'Create a [DURAÇÃO] second promotional video showing [PRODUTO/SERVIÇO], dynamic camera movements, [ESTILO_VISUAL], upbeat music, modern transitions, [CALL_TO_ACTION], 1080p quality',
+      categoryId: videoCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
+  await prisma.promptTemplate.upsert({
+    where: { id: 'prompt-animacao-logo' },
+    update: {},
+    create: {
+      id: 'prompt-animacao-logo',
+      name: 'Animação de Logo',
+      prompt: 'Animated logo reveal for [NOME_EMPRESA], [ESTILO_ANIMAÇÃO] animation, [DURAÇÃO] seconds, smooth transitions, [CORES_PRINCIPAIS], professional look, [EFEITOS_ESPECIAIS], 4K resolution',
+      categoryId: videoCategory.id,
+      isOfficial: true,
+      usageCount: 0,
+    },
+  })
+
   console.log('✅ Seed concluído!')
   console.log(`📋 Planos criados: ${freePlan.displayName}, ${proPlan.displayName}, ${enterprisePlan.displayName}`)
   console.log('🎨 Templates oficiais criados')
+  console.log(`📝 Categorias de prompts criadas: ${portraitCategory.name}, ${landscapeCategory.name}, ${artCategory.name}, ${productCategory.name}, ${videoCategory.name}`)
+  console.log('💡 Templates de prompts para imagens e vídeos criados')
   console.log('⚙️ Configurações do sistema definidas')
 }
 
