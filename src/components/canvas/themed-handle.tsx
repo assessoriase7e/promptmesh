@@ -17,19 +17,20 @@ export const ThemedHandle = ({
     <Handle
       {...props}
       className={cn(
-        "transition-all duration-200 cursor-crosshair",
+        "transition-all duration-200 cursor-crosshair hover:scale-110",
         className
       )}
       style={{
         backgroundColor: color,
-        width: '16px',
-        height: '16px',
-        border: '2px solid white',
+        width: '18px',
+        height: '18px',
+        border: '3px solid white',
         borderRadius: '50%',
-        zIndex: 1000,
+        zIndex: 1001,
         pointerEvents: 'all',
-        position: 'relative',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        position: 'absolute',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        opacity: 1,
         ...props.style
       }}
     />

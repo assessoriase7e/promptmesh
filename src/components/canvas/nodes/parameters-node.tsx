@@ -177,12 +177,16 @@ export const ParametersNode = ({ data, selected }: NodeProps<any>) => {
       <ThemedHandle
         type="target"
         position={Position.Left}
+        id="parameters-input"
         color="#10b981"
+        style={{ top: '50%' }}
       />
       <ThemedHandle
         type="source"
         position={Position.Right}
+        id="parameters-output"
         color="#10b981"
+        style={{ top: '50%' }}
       />
     </Card>
   );

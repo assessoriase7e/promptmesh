@@ -141,9 +141,21 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <ThemedHandle type="target" position={Position.Left} color="#f59e0b" />
+      <ThemedHandle 
+        type="target" 
+        position={Position.Left} 
+        id="output-input"
+        color="#f59e0b" 
+        style={{ top: '50%' }}
+      />
       {/* Handle de saída para continuar a cadeia */}
-      <ThemedHandle type="source" position={Position.Right} color="#f59e0b" />
+      <ThemedHandle 
+        type="source" 
+        position={Position.Right} 
+        id="output-output"
+        color="#f59e0b" 
+        style={{ top: '50%' }}
+      />
     </Card>
   );
 };

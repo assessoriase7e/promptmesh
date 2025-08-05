@@ -15,7 +15,6 @@ import {
   Node,
   ReactFlowProvider,
   useReactFlow,
-  ConnectionMode,
   NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -27,8 +26,7 @@ import { ParametersNode } from "./nodes/parameters-node";
 import { OutputNode } from "./nodes/output-node";
 import { UploadPromptNode } from "./nodes/upload-prompt-node";
 import { ResultPromptNode } from "./nodes/result-prompt-node";
-import { createEdge, deleteEdge } from "@/actions";
-import { updateNode } from "@/actions/node-actions";
+import { CustomConnectionLine } from "./custom-connection-line";
 
 const nodeTypes = {
   prompt: PromptNode,
@@ -44,7 +42,7 @@ const initialNodes: Node[] = [
   {
     id: "1",
     type: "upload-prompt",
-    position: { x: 50, y: 100 },
+    position: { x: 100, y: 100 },
     data: {
       label: "Upload + Prompt",
       imageUrl: "",
@@ -54,7 +52,7 @@ const initialNodes: Node[] = [
   {
     id: "2",
     type: "parameters",
-    position: { x: 400, y: 100 },
+    position: { x: 500, y: 100 },
     data: {
       label: "Parâmetros IA",
       parameters: {
@@ -67,7 +65,7 @@ const initialNodes: Node[] = [
   {
     id: "3",
     type: "output",
-    position: { x: 750, y: 100 },
+    position: { x: 900, y: 100 },
     data: {
       label: "Resultado 1",
       outputs: ["https://via.placeholder.com/300x300/8b5cf6/ffffff?text=Resultado+1"],
@@ -76,37 +74,49 @@ const initialNodes: Node[] = [
   {
     id: "4",
     type: "result-prompt",
-    position: { x: 400, y: 300 },
+    position: { x: 500, y: 400 },
     data: {
       label: "Continuar Editando",
       prompt: "Adicione efeitos de luz neon",
     },
   },
+];
+
+const initialEdges: Edge[] = [
   {
-    id: "5",
-    type: "parameters",
-    position: { x: 750, y: 300 },
-    data: {
-      label: "Parâmetros 2",
-      parameters: {
-        model: "DALL-E 3",
-        style: "Cyberpunk",
-        resolution: "1024x1024",
-      },
+    id: "e1-2",
+    source: "1",
+    target: "2",
+    type: "default",
+    animated: true,
+    style: { 
+      strokeWidth: 3,
+      stroke: "hsl(var(--primary))",
     },
   },
   {
-    id: "6",
-    type: "output",
-    position: { x: 1100, y: 300 },
-    data: {
-      label: "Resultado Final",
-      outputs: [],
+    id: "e2-3",
+    source: "2",
+    target: "3",
+    type: "default",
+    animated: true,
+    style: { 
+      strokeWidth: 3,
+      stroke: "hsl(var(--primary))",
+    },
+  },
+  {
+    id: "e3-4",
+    source: "3",
+    target: "4",
+    type: "default",
+    animated: true,
+    style: { 
+      strokeWidth: 3,
+      stroke: "hsl(var(--primary))",
     },
   },
 ];
-
-const initialEdges: Edge[] = [];
 
 interface FlowCanvasProps {
   projectId?: string;
@@ -116,62 +126,24 @@ interface FlowCanvasProps {
 }
 
 export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCanvasProps) => {
-  console.log("FlowCanvas renderizado!", { projectId, hasOnSave: !!onSave, hasOnExecute: !!onExecute });
-
   // Usar dados iniciais se fornecidos, senão usar os padrões
   const startingNodes = initialData?.nodes || initialNodes;
   const startingEdges = initialData?.edges || initialEdges;
 
   const [nodes, setNodes, onNodesChange] = useNodesState(startingNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startingEdges);
-
-  console.log("Estado atual das edges:", edges);
+  
   const [isExecuting, setIsExecuting] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
-  // Função customizada para lidar com mudanças nos nós
+  // Função para lidar com mudanças nos nós (apenas local, sem persistência automática)
   const handleNodesChange = useCallback(
-    async (changes: NodeChange[]) => {
-      console.log("handleNodesChange chamada!", changes);
+    (changes: NodeChange[]) => {
       onNodesChange(changes);
-
-      // Persistir mudanças de posição se temos projectId
-      if (projectId) {
-        console.log("ProjectId encontrado:", projectId);
-        const positionChanges = changes.filter(
-          (
-            change
-          ): change is NodeChange & {
-            type: "position";
-            id: string;
-            position: { x: number; y: number };
-            dragging?: boolean;
-          } =>
-            change.type === "position" &&
-            "position" in change &&
-            change.position !== undefined &&
-            !("dragging" in change && change.dragging)
-        );
-
-        if (positionChanges.length > 0) {
-          try {
-            await Promise.all(
-              positionChanges.map((change) =>
-                updateNode(change.id, {
-                  position: change.position,
-                })
-              )
-            );
-            console.log(`Posições salvas para ${positionChanges.length} nós`);
-          } catch (error) {
-            console.error("Erro ao salvar posições dos nós:", error);
-          }
-        }
-      }
     },
-    [onNodesChange, projectId]
+    [onNodesChange]
   );
 
   // Função para validar se dois nodes podem se conectar
@@ -199,75 +171,54 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   }, []);
 
   const onConnect = useCallback(
-    async (params: Connection) => {
-      console.log("onConnect chamada!", params);
-
+    (params: Connection) => {
       if (!isValidConnection(params)) {
-        console.warn("Conexão inválida entre esses tipos de nodes");
         return;
       }
 
       setIsConnecting(true);
 
-      try {
-        // Se temos um projectId, persistir no banco
-        if (projectId && params.source && params.target) {
-          await createEdge({
-            projectId,
-            sourceNodeId: params.source,
-            targetNodeId: params.target,
-            sourceHandle: params.sourceHandle || undefined,
-            targetHandle: params.targetHandle || undefined,
-            animated: true,
-          });
-        }
+      // Verificar se os nós existem localmente
+      const sourceNode = nodes.find((n) => n.id === params.source);
+      const targetNode = nodes.find((n) => n.id === params.target);
 
-        // Adicionar localmente
-        console.log("Adicionando edge ao estado local...", params);
-        setEdges((eds) => {
-          const newEdges = addEdge(params, eds);
-          console.log("Edges antes:", eds);
-          console.log("Edges depois:", newEdges);
-          return newEdges;
-        });
-      } catch (error) {
-        console.error("Erro ao criar conexão:", error);
-      } finally {
+      if (!sourceNode || !targetNode) {
         setIsConnecting(false);
+        return;
       }
+
+      // Criar edge com propriedades completas (apenas local, sem persistência automática)
+      const newEdge: Edge = {
+        id: `reactflow__edge-${params.source}-${params.target}`,
+        source: params.source!,
+        target: params.target!,
+        sourceHandle: params.sourceHandle || null,
+        targetHandle: params.targetHandle || null,
+        type: "default",
+        animated: true,
+        style: {
+          strokeWidth: 3,
+          stroke: "hsl(var(--primary))",
+        },
+      };
+
+      // Adicionar localmente
+      setEdges((eds) => [...eds, newEdge]);
+
+      setIsConnecting(false);
     },
-    [setEdges, projectId, isValidConnection]
+    [setEdges, isValidConnection, nodes]
   );
 
-  // Função para deletar nós
+  // Função para deletar nós (apenas local, sem persistência automática)
   const onNodesDelete = useCallback((deleted: Node[]) => {
-    console.log(
-      "Nós deletados:",
-      deleted.map((n) => n.data.label || n.id)
-    );
+    // Deletar apenas localmente, persistência será feita no botão Salvar
   }, []);
 
-  // Função para deletar edges
-  const onEdgesDelete = useCallback(
-    async (deleted: Edge[]) => {
-      console.log(
-        "Conexões deletadas:",
-        deleted.map((e) => e.id)
-      );
-
-      // Se temos projectId, deletar do banco também
-      if (projectId) {
-        try {
-          for (const edge of deleted) {
-            await deleteEdge(edge.id);
-          }
-        } catch (error) {
-          console.error("Erro ao deletar conexões:", error);
-        }
-      }
-    },
-    [projectId]
-  );
+  // Função para deletar edges (apenas local, sem persistência automática)
+  const onEdgesDelete = useCallback((deleted: Edge[]) => {
+    // Deletar apenas localmente, persistência será feita no botão Salvar
+  }, []);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
@@ -309,7 +260,6 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
   );
 
   const handleSave = useCallback(() => {
-    console.log("Botão Salvar clicado!", { nodes: nodes.length, edges: edges.length });
     onSave?.(nodes, edges);
   }, [nodes, edges, onSave]);
 
@@ -330,34 +280,15 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
         onNodesChange={handleNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodesDelete={onNodesDelete}
-        onEdgesDelete={onEdgesDelete}
         nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
-        snapToGrid={true}
-        snapGrid={[15, 15]}
         fitView
-        deleteKeyCode="Delete"
-        colorMode="system"
         defaultEdgeOptions={{
           animated: true,
-          style: { strokeWidth: 2 },
+          style: { 
+            strokeWidth: 3,
+            stroke: "hsl(var(--primary))",
+          },
         }}
-        connectionLineStyle={{
-          strokeWidth: 3,
-          stroke: "hsl(var(--primary))",
-          strokeDasharray: "5,5",
-        }}
-        connectionRadius={25}
-        connectOnClick={false}
-        nodesConnectable={true}
-        nodesDraggable={true}
-        panOnDrag={[1, 2]}
-        zoomOnScroll={true}
-        zoomOnPinch={true}
-        isValidConnection={isValidConnection}
-        onConnectStart={() => setIsConnecting(true)}
-        onConnectEnd={() => setIsConnecting(false)}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="hsl(var(--muted-foreground))" />
         <Controls showZoom={true} showFitView={true} showInteractive={true} />

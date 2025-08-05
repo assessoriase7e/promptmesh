@@ -1,6 +1,8 @@
 'use client';
 
 import { FlowCanvasProvider } from '@/components/canvas/flow-canvas';
+import { updateProject } from '@/actions/project-actions';
+import { toast } from 'sonner';
 
 interface ProjectEditorProps {
   projectId: string;
@@ -9,8 +11,24 @@ interface ProjectEditorProps {
 
 export const ProjectEditor = ({ projectId, initialData }: ProjectEditorProps) => {
   const handleSave = async (nodes: any[], edges: any[]) => {
-    // Lógica para salvar será implementada
-    console.log('Salvando projeto:', projectId, { nodes, edges });
+    try {
+      // Preparar dados do canvas para salvamento
+      const canvasData = {
+        nodes,
+        edges,
+        lastSaved: new Date().toISOString(),
+      };
+
+      // Salvar no banco de dados
+      await updateProject(projectId, {
+        canvasData,
+      });
+
+      toast.success('Projeto salvo com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar projeto:', error);
+      toast.error('Erro ao salvar projeto. Tente novamente.');
+    }
   };
 
   const handleExecute = async (nodes: any[], edges: any[]) => {

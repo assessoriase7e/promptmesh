@@ -132,7 +132,9 @@ export const UploadNode = ({ data, selected }: NodeProps<any>) => {
       <ThemedHandle
         type="source"
         position={Position.Right}
+        id="upload-output"
         color="#06b6d4"
+        style={{ top: '50%' }}
       />
     </Card>
   );

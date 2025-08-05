@@ -94,8 +94,20 @@ export const ResultPromptNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <ThemedHandle type="target" position={Position.Left} color="#059669" />
-      <ThemedHandle type="source" position={Position.Right} color="#059669" />
+      <ThemedHandle
+        type="target"
+        position={Position.Left}
+        id="result-prompt-input"
+        color="#059669"
+        style={{ top: "50%" }}
+      />
+      <ThemedHandle
+        type="source"
+        position={Position.Right}
+        id="result-prompt-output"
+        color="#059669"
+        style={{ top: "50%" }}
+      />
     </Card>
   );
 };

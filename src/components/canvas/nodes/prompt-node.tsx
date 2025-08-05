@@ -110,7 +110,9 @@ export const PromptNode = ({ data, selected, id }: NodeProps<any>) => {
       <ThemedHandle
         type="source"
         position={Position.Right}
+        id="prompt-output"
         color="#8b5cf6"
+        style={{ top: '50%' }}
       />
     </Card>
   );

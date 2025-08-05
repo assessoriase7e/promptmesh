@@ -146,7 +146,13 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <ThemedHandle type="source" position={Position.Right} color="#ea580c" />
+      <ThemedHandle 
+        type="source" 
+        position={Position.Right} 
+        id="upload-prompt-output"
+        color="#ea580c" 
+        style={{ top: '50%' }}
+      />
     </Card>
   );
 };
