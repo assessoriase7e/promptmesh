@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useRef } from "react";
+import { useCallback, useState, useRef, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -15,10 +15,13 @@ import {
   ReactFlowProvider,
   useReactFlow,
   NodeChange,
+  EdgeChange,
+  addEdge,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 
 import { DragItem } from "@/types";
+import { useUndoRedo } from "@/hooks/use-undo-redo";
 import { PromptNode } from "./nodes/prompt-node";
 import { UploadNode } from "./nodes/upload-node";
 import { ParametersNode } from "./nodes/parameters-node";
@@ -133,15 +136,117 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
 
   const [isExecuting, setIsExecuting] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [selectedNodes, setSelectedNodes] = useState<string[]>([]);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+
+  // Hook para undo/redo
+  const { undo, redo, saveState, canUndo, canRedo } = useUndoRedo(projectId);
+  const lastSaveTime = useRef<number>(0);
+  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Função para salvar estado com debounce
+  const debouncedSaveState = useCallback((nodes: Node[], edges: Edge[], delay = 500) => {
+    if (saveTimeout.current) {
+      clearTimeout(saveTimeout.current);
+    }
+    
+    saveTimeout.current = setTimeout(() => {
+      const now = Date.now();
+      // Evitar salvar muito frequentemente (mínimo 300ms entre saves)
+      if (now - lastSaveTime.current > 300) {
+        saveState(nodes, edges);
+        lastSaveTime.current = now;
+      }
+    }, delay);
+  }, [saveState]);
+
+  // Salvar estado inicial
+  useEffect(() => {
+    if (nodes.length > 0 || edges.length > 0) {
+      saveState(nodes, edges);
+    }
+  }, []); // Apenas na montagem
 
   // Função para lidar com mudanças nos nós (apenas local, sem persistência automática)
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
       onNodesChange(changes);
+      
+      // Verificar se houve mudanças significativas que requerem salvar estado
+      const hasSignificantChanges = changes.some(change => 
+        change.type === 'remove' || 
+        change.type === 'add' ||
+        (change.type === 'position' && 'dragging' in change && !change.dragging) // Salvar apenas quando parar de arrastar
+      );
+      
+      if (hasSignificantChanges) {
+        // Usar setTimeout para garantir que o estado foi atualizado
+        setTimeout(() => {
+          const isPositionChange = changes.some(c => c.type === 'position');
+          debouncedSaveState(nodes, edges, isPositionChange ? 100 : 0);
+        }, 10);
+      }
+      
+      // Atualizar seleção de nodes
+      const selectedNodeIds = changes
+        .filter((change) => change.type === 'select' && change.selected && 'id' in change)
+        .map((change) => (change as any).id);
+      
+      if (selectedNodeIds.length > 0) {
+        setSelectedNodes(selectedNodeIds);
+      } else {
+        // Verificar se algum node foi desselecionado
+        const deselectedNodeIds = changes
+          .filter((change) => change.type === 'select' && !change.selected && 'id' in change)
+          .map((change) => (change as any).id);
+        
+        if (deselectedNodeIds.length > 0) {
+          setSelectedNodes(prev => prev.filter(id => !deselectedNodeIds.includes(id)));
+        }
+      }
     },
-    [onNodesChange]
+    [onNodesChange, debouncedSaveState, nodes, edges]
+  );
+
+  // Função para lidar com mudanças nas edges
+  const handleEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      onEdgesChange(changes);
+      
+      // Verificar se houve mudanças significativas que requerem salvar estado
+      const hasSignificantChanges = changes.some(change => 
+        change.type === 'remove' || 
+        change.type === 'add'
+      );
+      
+      if (hasSignificantChanges) {
+        // Usar setTimeout para garantir que o estado foi atualizado
+        setTimeout(() => {
+          debouncedSaveState(nodes, edges, 0);
+        }, 10);
+      }
+      
+      // Atualizar seleção de edges
+      const selectedEdgeIds = changes
+        .filter((change) => change.type === 'select' && change.selected && 'id' in change)
+        .map((change) => (change as any).id);
+      
+      if (selectedEdgeIds.length > 0) {
+        setSelectedEdges(selectedEdgeIds);
+      } else {
+        // Verificar se alguma edge foi desselecionada
+        const deselectedEdgeIds = changes
+          .filter((change) => change.type === 'select' && !change.selected && 'id' in change)
+          .map((change) => (change as any).id);
+        
+        if (deselectedEdgeIds.length > 0) {
+          setSelectedEdges(prev => prev.filter(id => !deselectedEdgeIds.includes(id)));
+        }
+      }
+    },
+    [onEdgesChange, debouncedSaveState, nodes, edges]
   );
 
   // Função para validar se dois nodes podem se conectar
@@ -201,12 +306,101 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
       };
 
       // Adicionar localmente
-      setEdges((eds) => [...eds, newEdge]);
+      setEdges((eds) => {
+        const newEdges = addEdge(newEdge, eds);
+        // Salvar estado após adicionar edge
+        setTimeout(() => {
+          debouncedSaveState(nodes, newEdges, 0);
+        }, 10);
+        return newEdges;
+      });
 
       setIsConnecting(false);
     },
-    [setEdges, isValidConnection, nodes]
+    [setEdges, isValidConnection, nodes, debouncedSaveState]
   );
+
+  // Função para deletar elementos selecionados
+  const deleteSelectedElements = useCallback(() => {
+    let shouldSaveState = false;
+    
+    if (selectedNodes.length > 0) {
+      setNodes((nds) => nds.filter((node) => !selectedNodes.includes(node.id)));
+      // Também remover edges conectadas aos nodes deletados
+      setEdges((eds) => eds.filter((edge) => 
+        !selectedNodes.includes(edge.source) && !selectedNodes.includes(edge.target)
+      ));
+      setSelectedNodes([]);
+      shouldSaveState = true;
+    }
+    
+    if (selectedEdges.length > 0) {
+      setEdges((eds) => eds.filter((edge) => !selectedEdges.includes(edge.id)));
+      setSelectedEdges([]);
+      shouldSaveState = true;
+    }
+    
+    if (shouldSaveState) {
+      // Salvar estado após deletar elementos
+      setTimeout(() => {
+        debouncedSaveState(nodes, edges, 0);
+      }, 10);
+    }
+  }, [selectedNodes, selectedEdges, setNodes, setEdges, debouncedSaveState, nodes, edges]);
+
+  // Funções de undo/redo
+  const handleUndo = useCallback(() => {
+    const state = undo();
+    if (state) {
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      setSelectedNodes([]);
+      setSelectedEdges([]);
+    }
+  }, [undo, setNodes, setEdges]);
+
+  const handleRedo = useCallback(() => {
+    const state = redo();
+    if (state) {
+      setNodes(state.nodes);
+      setEdges(state.edges);
+      setSelectedNodes([]);
+      setSelectedEdges([]);
+    }
+  }, [redo, setNodes, setEdges]);
+
+  // Handler para teclas de atalho
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // Verificar se não estamos em um input ou textarea
+      const target = event.target as HTMLElement;
+      const isInputElement = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true';
+      
+      if (isInputElement) return;
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault();
+        deleteSelectedElements();
+      } else if (event.ctrlKey || event.metaKey) {
+        if (event.key === 'z' && !event.shiftKey) {
+          event.preventDefault();
+          handleUndo();
+        } else if ((event.key === 'y') || (event.key === 'z' && event.shiftKey)) {
+          event.preventDefault();
+          handleRedo();
+        }
+      }
+    },
+    [deleteSelectedElements, handleUndo, handleRedo]
+  );
+
+  // Adicionar listener de teclado
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   // Função para deletar nós (apenas local, sem persistência automática)
   const onNodesDelete = useCallback((deleted: Node[]) => {
@@ -249,12 +443,19 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
           },
         };
 
-        setNodes((nds) => nds.concat(newNode));
+        setNodes((nds) => {
+          const newNodes = nds.concat(newNode);
+          // Salvar estado após adicionar node
+          setTimeout(() => {
+            debouncedSaveState(newNodes, edges, 0);
+          }, 10);
+          return newNodes;
+        });
       } catch (error) {
         console.error("Erro ao processar item arrastado:", error);
       }
     },
-    [screenToFlowPosition, setNodes]
+    [screenToFlowPosition, setNodes, debouncedSaveState, edges]
   );
 
   const handleSave = useCallback(() => {
@@ -276,10 +477,15 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
         nodes={nodes}
         edges={edges}
         onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        multiSelectionKeyCode="Shift"
+        deleteKeyCode="Delete"
+        selectionOnDrag={true}
+        panOnDrag={[1, 2]}
+        selectNodesOnDrag={false}
         defaultEdgeOptions={{
           animated: true,
           style: {
