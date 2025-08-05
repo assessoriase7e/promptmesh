@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Puzzle, History, Paintbrush, Settings, X, Plus } from "lucide-react";
+import { Home, History, Paintbrush, Settings, X, Plus, FolderOpen } from "lucide-react";
 import { PromptCard } from "@/components/cards/prompt-card";
 import { UploadCard } from "@/components/cards/upload-card";
 import { ParametersCard } from "@/components/cards/parameters-card";
@@ -19,11 +19,18 @@ interface SidebarProps {
 
 const sidebarItems = [
   {
-    id: "canvas",
-    label: "Canvas",
-    icon: Puzzle,
+    id: "dashboard",
+    label: "Dashboard",
+    icon: Home,
     path: "/",
-    description: "Criar fluxos visuais",
+    description: "Página inicial",
+  },
+  {
+    id: "projects",
+    label: "Projetos",
+    icon: FolderOpen,
+    path: "/projects",
+    description: "Gerenciar projetos",
   },
   {
     id: "history",
@@ -50,6 +57,9 @@ const sidebarItems = [
 
 export const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
   const pathname = usePathname();
+  
+  // Verificar se estamos na rota do editor para mostrar componentes draggable
+  const isEditorRoute = pathname.startsWith('/editor/');
 
   return (
     <>
@@ -100,28 +110,30 @@ export const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
             })}
           </nav>
 
-          {/* Componentes Draggable */}
-          <div className="px-3 py-4 border-t">
-            <div className="flex items-center gap-2 mb-3">
-              <Plus className="h-4 w-4" />
-              <h3 className="font-medium text-sm">Componentes</h3>
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-2">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Básicos</h4>
-                <PromptCard />
-                <UploadCard />
-                <ParametersCard />
-                <OutputCard />
+          {/* Componentes Draggable - só aparecem na rota do editor */}
+          {isEditorRoute && (
+            <div className="px-3 py-4 border-t">
+              <div className="flex items-center gap-2 mb-3">
+                <Plus className="h-4 w-4" />
+                <h3 className="font-medium text-sm">Componentes</h3>
               </div>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Básicos</h4>
+                  <PromptCard />
+                  <UploadCard />
+                  <ParametersCard />
+                  <OutputCard />
+                </div>
 
-              <div className="space-y-2 pt-3 border-t">
-                <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avançados</h4>
-                <UploadPromptCard />
-                <ResultPromptCard />
+                <div className="space-y-2 pt-3 border-t">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Avançados</h4>
+                  <UploadPromptCard />
+                  <ResultPromptCard />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Footer da sidebar */}
           <div className="p-4 border-t">

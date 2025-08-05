@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Position, NodeProps } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PromptSelector } from "@/components/ui/prompt-selector";
 import { ArrowRight, Sparkles, Copy } from "lucide-react";
+import { ThemedHandle } from "../themed-handle";
 
 export const ResultPromptNode = ({ data, selected }: NodeProps<any>) => {
   const [prompt, setPrompt] = useState(data.prompt || "");
@@ -93,8 +94,8 @@ export const ResultPromptNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-emerald-500" />
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-emerald-500" />
+      <ThemedHandle type="target" position={Position.Left} color="#059669" />
+      <ThemedHandle type="source" position={Position.Right} color="#059669" />
     </Card>
   );
 };

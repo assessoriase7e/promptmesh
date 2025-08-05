@@ -17,14 +17,19 @@ export const ThemedHandle = ({
     <Handle
       {...props}
       className={cn(
-        "w-3 h-3 !border-2 transition-all duration-200",
-        "hover:scale-110 hover:shadow-lg",
+        "transition-all duration-200 cursor-crosshair",
         className
       )}
       style={{
         backgroundColor: color,
-        border: '2px solid hsl(var(--background))',
-        boxShadow: '0 0 0 0px hsl(var(--primary) / 0)',
+        width: '16px',
+        height: '16px',
+        border: '2px solid white',
+        borderRadius: '50%',
+        zIndex: 1000,
+        pointerEvents: 'all',
+        position: 'relative',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         ...props.style
       }}
     />

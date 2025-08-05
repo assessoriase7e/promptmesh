@@ -203,28 +203,41 @@
   /* React Flow Connection Line */
   .react-flow__connection-line {
     stroke: hsl(var(--primary)) !important;
-    stroke-width: 2 !important;
+    stroke-width: 3 !important;
     stroke-dasharray: 5,5 !important;
+    opacity: 0.8 !important;
+    pointer-events: none !important;
+  }
+
+  .react-flow__connectionline {
+    stroke: hsl(var(--primary)) !important;
+    stroke-width: 3 !important;
+    stroke-dasharray: 5,5 !important;
+    opacity: 0.8 !important;
+    pointer-events: none !important;
   }
 
   /* React Flow Handles */
   .react-flow__handle {
-    border: 2px solid hsl(var(--background)) !important;
+    width: 16px !important;
+    height: 16px !important;
+    border: 2px solid white !important;
     border-radius: 50% !important;
-    transition: all 0.2s ease-in-out !important;
+    cursor: crosshair !important;
   }
 
   .react-flow__handle:hover {
-    transform: scale(1.2) !important;
-    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2) !important;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3) !important;
   }
 
   .react-flow__handle-connecting {
     background-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.4) !important;
   }
 
   .react-flow__handle-valid {
     background-color: hsl(var(--primary)) !important;
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.3) !important;
   }
 
   /* React Flow Selection */

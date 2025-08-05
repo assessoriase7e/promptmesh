@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Handle, Position, NodeProps, useReactFlow } from "@xyflow/react";
+import { Position, NodeProps, useReactFlow } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PromptSelector } from "@/components/ui/prompt-selector";
 import { Upload, Image, Sparkles, X, MessageSquare } from "lucide-react";
+import { ThemedHandle } from "../themed-handle";
 
 export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
   const [imageUrl, setImageUrl] = useState(data.imageUrl || "");
@@ -145,7 +146,7 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-orange-500" />
+      <ThemedHandle type="source" position={Position.Right} color="#ea580c" />
     </Card>
   );
 };

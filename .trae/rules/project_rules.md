@@ -29,6 +29,7 @@
 - Uso explícito de `export const revalidate = 3600` em páginas.
 - Manter revalidação manual via `revalidatePath` após criação, edição e exclusão.
 - `params` e `searchParams` são promises no Next 15 e devem ser tratados como tal.
+- Crie migrations para aplicar mudanças no banco de daods, estamos usando postgresql
 
 ## Padrões de Código
 

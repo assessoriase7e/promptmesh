@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Position, NodeProps } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Upload, Image, X, FileImage } from 'lucide-react';
+import { ThemedHandle } from '../themed-handle';
 export const UploadNode = ({ data, selected }: NodeProps<any>) => {
   const [imageUrl, setImageUrl] = useState(data.imageUrl || '');
   const [isDragging, setIsDragging] = useState(false);
@@ -128,15 +129,10 @@ export const UploadNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="w-3 h-3 bg-cyan-500"
-      />
-      <Handle
+      <ThemedHandle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 bg-cyan-500"
+        color="#06b6d4"
       />
     </Card>
   );

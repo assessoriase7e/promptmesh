@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Handle, Position, NodeProps } from "@xyflow/react";
+import { Position, NodeProps } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Download, Image, Loader2, CheckCircle, AlertCircle, Eye } from "lucide-react";
+import { ThemedHandle } from "../themed-handle";
 export const OutputNode = ({ data, selected }: NodeProps<any>) => {
   const [outputs] = useState(data.outputs || []);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -140,9 +141,9 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-amber-500" />
+      <ThemedHandle type="target" position={Position.Left} color="#f59e0b" />
       {/* Handle de saída para continuar a cadeia */}
-      {outputs.length > 0 && <Handle type="source" position={Position.Right} className="w-3 h-3 bg-amber-500" />}
+      <ThemedHandle type="source" position={Position.Right} color="#f59e0b" />
     </Card>
   );
 };

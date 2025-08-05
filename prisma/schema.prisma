@@ -24,6 +24,7 @@ model User {
   projects   Project[]
   executions Execution[]
   templates  Template[]
+  folders    Folder[]
   
   // Plano e monetização
   planId     String?
@@ -49,6 +50,29 @@ model Plan {
   @@map("plans")
 }
 
+// ===== PASTAS PARA ORGANIZAÇÃO =====
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  color     String?  // Cor da pasta (hex)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Hierarquia de pastas
+  parentId String?
+  parent   Folder? @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderHierarchy")
+  
+  // Projetos na pasta
+  projects Project[]
+  
+  @@map("folders")
+}
+
 // ===== PROJETOS/FLUXOS =====
 model Project {
   id          String   @id @default(cuid())
@@ -65,6 +89,10 @@ model Project {
   nodes     Node[]
   edges     Edge[]
   executions Execution[]
+  
+  // Organização em pastas
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
   
   // Metadados do canvas
   canvasData Json? // Posições, zoom, etc.

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import { Position, NodeProps } from '@xyflow/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Settings, RotateCcw } from 'lucide-react';
 import { AIParameters } from '@/types';
+import { ThemedHandle } from '../themed-handle';
 
 const models = [
   { value: 'dall-e-3', label: 'DALL-E 3' },
@@ -173,15 +174,15 @@ export const ParametersNode = ({ data, selected }: NodeProps<any>) => {
       </CardContent>
 
       {/* Handles para conexões */}
-      <Handle
+      <ThemedHandle
         type="target"
         position={Position.Left}
-        className="w-3 h-3 bg-green-500"
+        color="#10b981"
       />
-      <Handle
+      <ThemedHandle
         type="source"
         position={Position.Right}
-        className="w-3 h-3 bg-green-500"
+        color="#10b981"
       />
     </Card>
   );
