@@ -7,7 +7,6 @@ import {
   BackgroundVariant,
   Controls,
   MiniMap,
-  addEdge,
   useNodesState,
   useEdgesState,
   Connection,
@@ -26,7 +25,6 @@ import { ParametersNode } from "./nodes/parameters-node";
 import { OutputNode } from "./nodes/output-node";
 import { UploadPromptNode } from "./nodes/upload-prompt-node";
 import { ResultPromptNode } from "./nodes/result-prompt-node";
-import { CustomConnectionLine } from "./custom-connection-line";
 
 const nodeTypes = {
   prompt: PromptNode,
@@ -89,7 +87,7 @@ const initialEdges: Edge[] = [
     target: "2",
     type: "default",
     animated: true,
-    style: { 
+    style: {
       strokeWidth: 3,
       stroke: "hsl(var(--primary))",
     },
@@ -100,7 +98,7 @@ const initialEdges: Edge[] = [
     target: "3",
     type: "default",
     animated: true,
-    style: { 
+    style: {
       strokeWidth: 3,
       stroke: "hsl(var(--primary))",
     },
@@ -111,7 +109,7 @@ const initialEdges: Edge[] = [
     target: "4",
     type: "default",
     animated: true,
-    style: { 
+    style: {
       strokeWidth: 3,
       stroke: "hsl(var(--primary))",
     },
@@ -132,7 +130,7 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
 
   const [nodes, setNodes, onNodesChange] = useNodesState(startingNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(startingEdges);
-  
+
   const [isExecuting, setIsExecuting] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -284,7 +282,7 @@ export const FlowCanvas = ({ projectId, initialData, onSave, onExecute }: FlowCa
         fitView
         defaultEdgeOptions={{
           animated: true,
-          style: { 
+          style: {
             strokeWidth: 3,
             stroke: "hsl(var(--primary))",
           },

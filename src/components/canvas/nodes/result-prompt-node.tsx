@@ -33,81 +33,83 @@ export const ResultPromptNode = ({ data, selected }: NodeProps<any>) => {
   };
 
   return (
-    <Card className={`w-80 ${selected ? "ring-2 ring-primary" : ""}`}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <ArrowRight className="h-4 w-4" />
-            {data.label}
-          </CardTitle>
-          <Badge variant="secondary" className="text-xs">
-            Resultado → Prompt
-          </Badge>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        {/* Preview da imagem de entrada (se houver) */}
-        {inputImageUrl && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">Imagem de Entrada</label>
-            <img src={inputImageUrl} alt="Entrada" className="w-full h-20 object-cover rounded-lg border bg-muted" />
+    <div className="relative">
+      <Card className={`w-80 ${selected ? "ring-2 ring-primary" : ""}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <ArrowRight className="h-4 w-4" />
+              {data.label}
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs">
+              Resultado → Prompt
+            </Badge>
           </div>
-        )}
+        </CardHeader>
 
-        {/* Indicador de entrada */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-          <ArrowRight className="h-3 w-3" />
-          <span>Recebe resultado do nó anterior</span>
-        </div>
+        <CardContent className="space-y-3">
+          {/* Preview da imagem de entrada (se houver) */}
+          {inputImageUrl && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-muted-foreground">Imagem de Entrada</label>
+              <img src={inputImageUrl} alt="Entrada" className="w-full h-20 object-cover rounded-lg border bg-muted" />
+            </div>
+          )}
 
-        {/* Campo de Prompt */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Novo Prompt</label>
-          <PromptSelector currentPrompt={prompt} onSelectPrompt={setPrompt} />
-          <Textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Descreva as próximas modificações..."
-            className="min-h-[100px] resize-none"
-          />
-        </div>
+          {/* Indicador de entrada */}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 p-2 rounded">
+            <ArrowRight className="h-3 w-3" />
+            <span>Recebe resultado do nó anterior</span>
+          </div>
 
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleEnhancePrompt}
-            disabled={isEnhancing || !prompt.trim()}
-            className="flex-1"
-          >
-            <Sparkles className="h-3 w-3 mr-1" />
-            {isEnhancing ? "Melhorando..." : "Melhorar"}
-          </Button>
+          {/* Campo de Prompt */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Novo Prompt</label>
+            <PromptSelector currentPrompt={prompt} onSelectPrompt={setPrompt} />
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Descreva as próximas modificações..."
+              className="min-h-[100px] resize-none"
+            />
+          </div>
 
-          <Button size="sm" variant="ghost" onClick={handleCopyPrompt} disabled={!prompt.trim()}>
-            <Copy className="h-3 w-3" />
-          </Button>
-        </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleEnhancePrompt}
+              disabled={isEnhancing || !prompt.trim()}
+              className="flex-1"
+            >
+              <Sparkles className="h-3 w-3 mr-1" />
+              {isEnhancing ? "Melhorando..." : "Melhorar"}
+            </Button>
 
-        {prompt.length > 0 && <div className="text-xs text-muted-foreground">{prompt.length} caracteres</div>}
-      </CardContent>
+            <Button size="sm" variant="ghost" onClick={handleCopyPrompt} disabled={!prompt.trim()}>
+              <Copy className="h-3 w-3" />
+            </Button>
+          </div>
 
-      {/* Handles para conexões */}
+          {prompt.length > 0 && <div className="text-xs text-muted-foreground">{prompt.length} caracteres</div>}
+        </CardContent>
+      </Card>
+
+      {/* Handles para conexões - posicionados na lateral do card */}
       <ThemedHandle
         type="target"
         position={Position.Left}
         id="result-prompt-input"
         color="#059669"
-        style={{ top: "50%" }}
+        style={{ top: "50%", left: "-8px" }}
       />
       <ThemedHandle
         type="source"
         position={Position.Right}
         id="result-prompt-output"
         color="#059669"
-        style={{ top: "50%" }}
+        style={{ top: "50%", right: "-8px" }}
       />
-    </Card>
+    </div>
   );
 };

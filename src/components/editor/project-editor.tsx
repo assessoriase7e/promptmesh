@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { FlowCanvasProvider } from '@/components/canvas/flow-canvas';
-import { updateProject } from '@/actions/project-actions';
-import { toast } from 'sonner';
+import { FlowCanvasProvider } from "@/components/canvas/flow-canvas";
+import { updateProject } from "@/actions/project-actions";
+import { toast } from "sonner";
 
 interface ProjectEditorProps {
   projectId: string;
@@ -24,24 +24,19 @@ export const ProjectEditor = ({ projectId, initialData }: ProjectEditorProps) =>
         canvasData,
       });
 
-      toast.success('Projeto salvo com sucesso!');
+      toast.success("Projeto salvo com sucesso!");
     } catch (error) {
-      console.error('Erro ao salvar projeto:', error);
-      toast.error('Erro ao salvar projeto. Tente novamente.');
+      console.error("Erro ao salvar projeto:", error);
+      toast.error("Erro ao salvar projeto. Tente novamente.");
     }
   };
 
   const handleExecute = async (nodes: any[], edges: any[]) => {
     // Lógica para executar será implementada
-    console.log('Executando projeto:', projectId, { nodes, edges });
+    console.log("Executando projeto:", projectId, { nodes, edges });
   };
 
   return (
-    <FlowCanvasProvider 
-      projectId={projectId}
-      initialData={initialData}
-      onSave={handleSave}
-      onExecute={handleExecute}
-    />
+    <FlowCanvasProvider projectId={projectId} initialData={initialData} onSave={handleSave} onExecute={handleExecute} />
   );
 };
