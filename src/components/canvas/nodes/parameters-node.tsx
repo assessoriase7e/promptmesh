@@ -70,7 +70,7 @@ export const ParametersNode = ({ data, selected }: NodeProps<any>) => {
           <div className="space-y-2">
             <Label className="text-xs">Modelo</Label>
             <Select value={parameters.model} onValueChange={(value) => updateParameter("model", value)}>
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -87,7 +87,7 @@ export const ParametersNode = ({ data, selected }: NodeProps<any>) => {
           <div className="space-y-2">
             <Label className="text-xs">Estilo</Label>
             <Select value={parameters.style} onValueChange={(value) => updateParameter("style", value)}>
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -104,7 +104,7 @@ export const ParametersNode = ({ data, selected }: NodeProps<any>) => {
           <div className="space-y-2">
             <Label className="text-xs">Resolução</Label>
             <Select value={parameters.resolution} onValueChange={(value) => updateParameter("resolution", value)}>
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
