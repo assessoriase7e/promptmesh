@@ -14,7 +14,11 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
   const [imageUrl, setImageUrl] = useState(data.imageUrl || "");
   const [prompt, setPrompt] = useState(data.prompt || "");
   const [isDragging, setIsDragging] = useState(false);
+  const [connectedImageUrl, setConnectedImageUrl] = useState(data.connectedImageUrl || "");
   const { deleteElements } = useReactFlow();
+
+  // Usar imagem conectada se disponível, senão usar upload manual
+  const currentImageUrl = connectedImageUrl || imageUrl;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -91,17 +95,28 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
           {/* Área de Upload */}
           <div className="space-y-2">
             <label className="text-sm font-medium">Imagem Base</label>
-            {imageUrl ? (
+            
+            {/* Indicador de imagem conectada */}
+            {connectedImageUrl && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-green-50 dark:bg-green-950 p-2 rounded">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>Imagem recebida de conexão</span>
+              </div>
+            )}
+            
+            {currentImageUrl ? (
               <div className="relative">
-                <img src={imageUrl} alt="Upload" className="w-full h-32 object-cover rounded-lg border" />
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="absolute top-2 right-2 h-6 w-6 p-0"
-                  onClick={removeImage}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+                <img src={currentImageUrl} alt="Upload" className="w-full h-32 object-cover rounded-lg border" />
+                {!connectedImageUrl && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="absolute top-2 right-2 h-6 w-6 p-0"
+                    onClick={removeImage}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             ) : (
               <div
@@ -148,6 +163,13 @@ export const UploadPromptNode = ({ data, selected, id }: NodeProps<any>) => {
       </Card>
 
       {/* Handles para conexões - posicionados na lateral do card */}
+      <ThemedHandle
+        type="target"
+        position={Position.Left}
+        id="upload-prompt-input"
+        color="#ea580c"
+        style={{ top: "30%", left: "-2px" }}
+      />
       <ThemedHandle
         type="source"
         position={Position.Right}

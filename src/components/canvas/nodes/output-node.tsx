@@ -1,18 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { Position, NodeProps } from "@xyflow/react";
+import { useState, useEffect, useRef } from "react";
+import { Position, NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Download, Image, Loader2, CheckCircle, AlertCircle, Eye } from "lucide-react";
 import { ThemedHandle } from "../themed-handle";
-export const OutputNode = ({ data, selected }: NodeProps<any>) => {
+
+export const OutputNode = ({ data, selected, id }: NodeProps<any>) => {
   const [outputs] = useState(data.outputs || []);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<"idle" | "generating" | "completed" | "error">("idle");
+  
+  const updateNodeInternals = useUpdateNodeInternals();
+  const nodeRef = useRef<HTMLDivElement>(null);
+
+  // Atualizar dimensões do node quando outputs mudam
+  useEffect(() => {
+    if (id) {
+      // Usar requestAnimationFrame para garantir que o DOM foi atualizado
+      requestAnimationFrame(() => {
+        updateNodeInternals(id);
+      });
+    }
+  }, [outputs.length, status, id, updateNodeInternals]);
+
+  // ResizeObserver para detectar mudanças de tamanho
+  useEffect(() => {
+    if (!nodeRef.current) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      // Debounce para evitar muitas chamadas
+      setTimeout(() => {
+        updateNodeInternals(id);
+      }, 10);
+    });
+
+    resizeObserver.observe(nodeRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateNodeInternals, id]);
 
   const handleDownload = (url: string, index: number) => {
     const link = document.createElement("a");
@@ -56,7 +88,7 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
   };
 
   return (
-    <div>
+    <div ref={nodeRef} className="relative" style={{ minWidth: '320px' }}>
       <Card className={`w-80 ${selected ? "ring-2 ring-primary" : ""}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -147,8 +179,15 @@ export const OutputNode = ({ data, selected }: NodeProps<any>) => {
 
       {/* Handles para conexões - posicionados na lateral do card */}
       <ThemedHandle type="target" position={Position.Left} id="output-input" style={{ top: "50%", left: "-2px" }} />
-      {/* Handle de saída para continuar a cadeia */}
-      <ThemedHandle type="source" position={Position.Right} id="output-output" style={{ top: "50%", right: "-2px" }} />
+      
+      {/* Handle de saída para conectar resultado a outros nodes - sempre disponível */}
+      <ThemedHandle 
+        type="source" 
+        position={Position.Right} 
+        id="output-result" 
+        color="#10b981"
+        style={{ top: "50%", right: "-2px" }} 
+      />
     </div>
   );
 };
