@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/prisma'
+import { prisma } from './prisma'
 import { NodeType, ExecutionStatus } from '@prisma/client'
 
 // ===== UTILITÁRIOS DE USUÁRIO =====
@@ -27,7 +27,7 @@ export async function createUserFromClerk(clerkData: {
       name: clerkData.name,
       imageUrl: clerkData.imageUrl,
       planId: freePlan?.id,
-      credits: freePlan?.credits || 10
+      credits: freePlan?.credits ?? 0
     },
     include: { plan: true }
   })

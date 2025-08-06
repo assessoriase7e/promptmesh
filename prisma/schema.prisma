@@ -26,11 +26,14 @@ model User {
   templates  Template[]
   folders    Folder[]
   promptTemplates PromptTemplate[] @relation("UserPromptTemplates")
+  purchases  Purchase[]
+  creditTransactions CreditTransaction[]
   
   // Plano e monetização
   planId     String?
   plan       Plan?     @relation(fields: [planId], references: [id])
-  credits    Int       @default(0)
+  credits    Int       @default(15) // 20 créditos gratuitos para novos usuários (via webhook)
+  lastFreeCreditsDate DateTime? // Data da última vez que recebeu créditos gratuitos mensais
   
   @@map("users")
 }
@@ -38,17 +41,84 @@ model User {
 // ===== PLANOS E MONETIZAÇÃO =====
 model Plan {
   id          String  @id @default(cuid())
-  name        String  @unique // "free", "pro", "enterprise"
-  displayName String  // "Gratuito", "Pro", "Enterprise"
-  price       Float   @default(0)
-  credits     Int     @default(0) // Créditos mensais
+  name        String  @unique // "starter", "standard", "professional", "enterprise"
+  displayName String  // "Starter", "Padrão", "Profissional", "Empresarial"
+  price       Float   @default(0) // Preço em reais
+  credits     Int     @default(0) // Créditos inclusos no pacote
+  bonus       Float   @default(0) // Percentual de bônus (ex: 0.2 = 20%)
   features    Json    // Array de features habilitadas
   isActive    Boolean @default(true)
+  stripeProductId String? @unique // ID do produto no Stripe
+  stripePriceId   String? @unique // ID do preço no Stripe
   
   // Relacionamentos
   users User[]
+  purchases Purchase[]
   
   @@map("plans")
+}
+
+// ===== COMPRAS/TRANSAÇÕES =====
+model Purchase {
+  id              String        @id @default(cuid())
+  amount          Float         // Valor pago em reais
+  credits         Int           // Créditos adquiridos
+  status          PurchaseStatus @default(PENDING)
+  stripeSessionId String?       @unique // ID da sessão do Stripe
+  stripePaymentId String?       @unique // ID do pagamento no Stripe
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relacionamentos
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId String?
+  plan   Plan?  @relation(fields: [planId], references: [id])
+  creditTransactions CreditTransaction[]
+  
+  @@map("purchases")
+}
+
+enum PurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+// ===== HISTÓRICO DE CRÉDITOS =====
+model CreditTransaction {
+  id          String            @id @default(cuid())
+  type        CreditTransactionType
+  amount      Int               // Quantidade de créditos (positivo = ganho, negativo = gasto)
+  description String            // Descrição da transação
+  metadata    Json?             // Dados extras (ex: nodeId, executionId, etc.)
+  createdAt   DateTime          @default(now())
+  
+  // Relacionamentos
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Referência opcional para compra
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id])
+  
+  // Referência opcional para execução
+  executionId String?
+  execution   Execution? @relation(fields: [executionId], references: [id])
+  
+  @@map("credit_transactions")
+}
+
+enum CreditTransactionType {
+  PURCHASE      // Compra de créditos
+  BONUS         // Créditos bônus (indicação, promoção)
+  USAGE         // Uso de créditos (geração de imagem/vídeo)
+  REFUND        // Reembolso de créditos
+  ADMIN_ADJUST  // Ajuste administrativo
+  WELCOME_BONUS // Bônus de boas-vindas
+  MONTHLY_FREE  // Créditos gratuitos mensais
 }
 
 // ===== PASTAS PARA ORGANIZAÇÃO =====
@@ -181,6 +251,9 @@ model Execution {
   
   // Execuções dos nodes individuais
   nodeExecutions NodeExecution[]
+  
+  // Transações de créditos relacionadas
+  creditTransactions CreditTransaction[]
   
   // Resultados finais
   outputs Json? // URLs de arquivos gerados, textos, etc.

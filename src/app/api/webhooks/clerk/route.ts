@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createUser, updateUser, deleteUser } from "@/actions/user-actions";
+import { giveWelcomeBonus, giveFirstMonthCredits } from "@/actions/credit-actions";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   // Verificar se temos o secret do webhook
@@ -63,12 +65,48 @@ export async function POST(req: NextRequest) {
       }
 
       try {
+        // Verificar se o usuário já existe antes de criar
+        const existingUser = await prisma.user.findUnique({
+          where: { clerkId: id },
+          select: { id: true, credits: true, createdAt: true }
+        });
+
         const user = await createUser({
           clerkId: id,
           email: primaryEmail.email_address,
           name: first_name && last_name ? `${first_name} ${last_name}` : first_name || last_name || null,
           imageUrl: image_url || null,
         });
+
+        // Dar bônus de boas-vindas e créditos do primeiro mês apenas se for um usuário novo
+        if (!existingUser) {
+          try {
+            // Aguardar um pouco para garantir que o usuário foi criado completamente
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Aplicar bônus de boas-vindas (15 créditos)
+            const bonusResult = await giveWelcomeBonus(id);
+            if (bonusResult) {
+              console.log(`✅ Bônus de boas-vindas de 15 créditos concedido para usuário: ${id}`);
+            } else {
+              console.log(`⚠️ Bônus não aplicado - usuário já tinha créditos: ${id}`);
+            }
+
+            // Aplicar créditos do primeiro mês (20 créditos)
+            const firstMonthResult = await giveFirstMonthCredits(id);
+            if (firstMonthResult) {
+              console.log(`✅ Créditos do primeiro mês (20) concedidos para usuário: ${id}`);
+              console.log(`🎯 Total de créditos após registro: ${firstMonthResult.user.credits}`);
+            } else {
+              console.log(`⚠️ Créditos do primeiro mês não aplicados: ${id}`);
+            }
+          } catch (bonusError) {
+            console.error("❌ Erro ao conceder créditos iniciais:", bonusError);
+            // Não falhar o webhook por causa dos créditos
+          }
+        } else {
+          console.log(`ℹ️ Usuário já existia, créditos não aplicados: ${id}`);
+        }
       } catch (error) {
         console.error("❌ Erro ao criar usuário via webhook:", error);
         return NextResponse.json({ error: "Erro ao criar usuário" }, { status: 500 });
