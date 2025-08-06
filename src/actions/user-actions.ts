@@ -2,8 +2,10 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "../../lib/prisma";
 import { createAuditLog } from "@/lib/db-utils";
+import { currentUser } from "@clerk/nextjs/server";
+import { giveWelcomeBonus, giveFirstMonthCredits } from "./credit-actions";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Busca usuário por Clerk ID
@@ -42,7 +44,98 @@ export async function getUserByClerkId(clerkId: string) {
 }
 
 /**
- * Cria um novo usuário no banco
+ * Garante que o usuário existe no banco de dados
+ * Resolve problema de timing entre Clerk e webhook
+ */
+export async function ensureUserExists() {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    // Buscar dados do Clerk
+    const clerkUser = await currentUser();
+
+    if (!clerkUser) {
+      throw new Error("Usuário não encontrado no Clerk");
+    }
+
+    // Buscar plano gratuito
+    const freePlan = await prisma.plan.findUnique({
+      where: { name: "free" },
+    });
+
+    if (!freePlan) {
+      throw new Error("Plano gratuito não encontrado");
+    }
+
+    // Usar upsert para evitar race condition
+    const user = await prisma.user.upsert({
+      where: { clerkId: userId },
+      update: {
+        // Atualizar dados se o usuário já existe
+        email: clerkUser.emailAddresses[0]?.emailAddress || "",
+        name: clerkUser.fullName,
+        imageUrl: clerkUser.imageUrl,
+      },
+      create: {
+        // Criar usuário se não existe
+        clerkId: userId,
+        email: clerkUser.emailAddresses[0]?.emailAddress || "",
+        name: clerkUser.fullName,
+        imageUrl: clerkUser.imageUrl,
+        planId: freePlan.id,
+        credits: freePlan.credits,
+      },
+      include: { plan: true },
+    });
+
+    // Verificar se é um usuário novo (sem créditos de bônus ainda)
+    const isNewUser = user.credits === freePlan.credits;
+
+    if (isNewUser) {
+      console.log(`✅ Novo usuário criado: ${userId}`);
+
+      // Log de auditoria apenas para novos usuários
+      await createAuditLog("create", "user", user.id, user.id, {
+        clerkId: userId,
+        email: user.email,
+        source: "ensure_user_exists",
+      });
+
+      // Aplicar créditos de boas-vindas e primeiro mês apenas para novos usuários
+      try {
+        // Aplicar bônus de boas-vindas (15 créditos)
+        const bonusResult = await giveWelcomeBonus(userId);
+        if (bonusResult) {
+          console.log(`✅ Bônus de boas-vindas aplicado via ensureUserExists: ${userId}`);
+        }
+
+        // Aplicar créditos do primeiro mês (20 créditos)
+        const firstMonthResult = await giveFirstMonthCredits(userId);
+        if (firstMonthResult) {
+          console.log(`✅ Créditos do primeiro mês aplicados via ensureUserExists: ${userId}`);
+          console.log(`🎯 Total de créditos: ${firstMonthResult.user.credits}`);
+        }
+      } catch (creditError) {
+        console.error("❌ Erro ao aplicar créditos via ensureUserExists:", creditError);
+        // Não falhar a criação do usuário por causa dos créditos
+      }
+    } else {
+      console.log(`✅ Usuário existente encontrado: ${userId}`);
+    }
+
+    return user;
+  } catch (error) {
+    console.error("Erro ao garantir existência do usuário:", error);
+    throw new Error("Falha ao garantir existência do usuário");
+  }
+}
+
+/**
+ * Cria um novo usuário no banco (ou retorna existente se já existe)
  */
 export async function createUser(data: {
   clerkId: string;
@@ -51,6 +144,17 @@ export async function createUser(data: {
   imageUrl?: string | null;
 }) {
   try {
+    // Verificar se o usuário já existe
+    const existingUser = await prisma.user.findUnique({
+      where: { clerkId: data.clerkId },
+      include: { plan: true },
+    });
+
+    if (existingUser) {
+      console.log(`✅ Usuário já existe: ${data.clerkId}`);
+      return existingUser;
+    }
+
     // Buscar plano gratuito
     const freePlan = await prisma.plan.findUnique({
       where: { name: "free" },
@@ -71,6 +175,8 @@ export async function createUser(data: {
       },
       include: { plan: true },
     });
+
+    console.log(`✅ Novo usuário criado: ${data.clerkId}`);
 
     // Log de auditoria
     await createAuditLog("create", "user", user.id, user.id, {

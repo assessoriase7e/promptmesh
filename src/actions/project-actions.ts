@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/db-utils";
 
 /**
@@ -20,8 +20,9 @@ export async function getUserProjects() {
       where: { clerkId: userId },
     });
 
+    // Se o usuário não existir no banco (race condition com webhook), retornar array vazio
     if (!user) {
-      throw new Error("Usuário não encontrado");
+      return [];
     }
 
     const projects = await prisma.project.findMany({

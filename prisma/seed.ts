@@ -5,42 +5,90 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('🌱 Iniciando seed do banco de dados...')
 
-  // Criar planos padrão
+  // Criar planos de créditos
+  // Plano gratuito para novos usuários
   const freePlan = await prisma.plan.upsert({
     where: { name: 'free' },
     update: {},
     create: {
       name: 'free',
       displayName: 'Gratuito',
-      price: 0,
-      credits: 10,
+      price: 0.00,
+      credits: 0, // Créditos são dados via webhook
+      bonus: 0,
       features: [
-        'até_3_projetos',
-        'execucoes_limitadas',
-        'templates_basicos',
-        'suporte_comunidade'
+        '15 créditos de boas-vindas',
+        'Geração básica de imagens',
+        'Suporte por email'
       ],
       isActive: true,
     },
   })
 
-  const proPlan = await prisma.plan.upsert({
-    where: { name: 'pro' },
+  const starterPlan = await prisma.plan.upsert({
+    where: { name: 'starter' },
     update: {},
     create: {
-      name: 'pro',
-      displayName: 'Pro',
-      price: 29.90,
-      credits: 500,
+      name: 'starter',
+      displayName: 'Starter',
+      price: 5.00,
+      credits: 50,
+      bonus: 0,
       features: [
-        'projetos_ilimitados',
-        'execucoes_ilimitadas',
-        'todos_templates',
-        'suporte_prioritario',
-        'api_access',
-        'colaboracao'
+        '50 créditos',
+        'Geração de imagens FLUX',
+        'Geração de imagens SDXL',
+        'Suporte por email'
       ],
       isActive: true,
+      stripeProductId: 'prod_starter', // Será atualizado com o ID real do Stripe
+      stripePriceId: 'price_starter', // Será atualizado com o ID real do Stripe
+    },
+  })
+
+  const standardPlan = await prisma.plan.upsert({
+    where: { name: 'standard' },
+    update: {},
+    create: {
+      name: 'standard',
+      displayName: 'Padrão',
+      price: 10.00,
+      credits: 100,
+      bonus: 20,
+      features: [
+        '100 créditos + 20 bônus',
+        'Geração de imagens FLUX',
+        'Geração de imagens SDXL',
+        'Geração de vídeos Seedance',
+        'Suporte prioritário'
+      ],
+      isActive: true,
+      stripeProductId: 'prod_standard',
+      stripePriceId: 'price_standard',
+    },
+  })
+
+  const professionalPlan = await prisma.plan.upsert({
+    where: { name: 'professional' },
+    update: {},
+    create: {
+      name: 'professional',
+      displayName: 'Profissional',
+      price: 20.00,
+      credits: 200,
+      bonus: 100,
+      features: [
+        '200 créditos + 100 bônus',
+        'Geração de imagens FLUX',
+        'Geração de imagens SDXL',
+        'Geração de vídeos Seedance',
+        'Geração de vídeos Kling',
+        'Suporte prioritário',
+        'API access'
+      ],
+      isActive: true,
+      stripeProductId: 'prod_professional',
+      stripePriceId: 'price_professional',
     },
   })
 
@@ -49,18 +97,21 @@ async function main() {
     update: {},
     create: {
       name: 'enterprise',
-      displayName: 'Enterprise',
-      price: 99.90,
-      credits: 2000,
+      displayName: 'Empresarial',
+      price: 50.00,
+      credits: 500,
+      bonus: 300,
       features: [
-        'tudo_do_pro',
-        'white_label',
-        'sso',
-        'suporte_dedicado',
-        'custom_integrations',
-        'advanced_analytics'
+        '500 créditos + 300 bônus',
+        'Todas as funcionalidades',
+        'Geração ilimitada',
+        'Suporte dedicado',
+        'API access completo',
+        'Integração personalizada'
       ],
       isActive: true,
+      stripeProductId: 'prod_enterprise',
+      stripePriceId: 'price_enterprise',
     },
   })
 
@@ -349,7 +400,7 @@ async function main() {
   })
 
   console.log('✅ Seed concluído!')
-  console.log(`📋 Planos criados: ${freePlan.displayName}, ${proPlan.displayName}, ${enterprisePlan.displayName}`)
+  console.log(`📋 Planos criados: ${freePlan.displayName}, ${starterPlan.displayName}, ${standardPlan.displayName}, ${professionalPlan.displayName}, ${enterprisePlan.displayName}`)
   console.log('🎨 Templates oficiais criados')
   console.log(`📝 Categorias de prompts criadas: ${portraitCategory.name}, ${landscapeCategory.name}, ${artCategory.name}, ${productCategory.name}, ${videoCategory.name}`)
   console.log('💡 Templates de prompts para imagens e vídeos criados')

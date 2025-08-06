@@ -1,33 +1,47 @@
-import { MainLayout } from '@/components/layout/main-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, FolderOpen, History, Zap, ArrowRight } from 'lucide-react';
-import Link from 'next/link';
-import { getUserProjects } from '@/actions/project-actions';
-import { getUserFolders } from '@/actions/folder-actions';
-import { auth } from '@clerk/nextjs/server';
+import { MainLayout } from "@/components/layout/main-layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, FolderOpen, History, Zap, ArrowRight } from "lucide-react";
+import Link from "next/link";
+import { getUserProjects } from "@/actions/project-actions";
+import { getUserFolders } from "@/actions/folder-actions";
+import { ensureUserExists } from "@/actions/user-actions";
+import { auth } from "@clerk/nextjs/server";
+import { Folder, Project } from "@prisma/client";
+
+type ProjectWithFolder = Project & {
+  folder?: {
+    id: string;
+    name: string;
+    color: string | null;
+  } | null;
+  _count: {
+    nodes: number;
+    executions: number;
+  };
+};
 
 export default async function Home() {
   const { userId } = await auth();
-  
+
   // Só buscar dados se o usuário estiver logado
-  let projects: any[] = [];
-  let folders: any[] = [];
-  
+  let projects: ProjectWithFolder[] = [];
+  let folders: Folder[] = [];
+
   if (userId) {
     try {
-      const [projectsResult, foldersResult] = await Promise.all([
-        getUserProjects(),
-        getUserFolders()
-      ]);
-      
+      // Garantir que o usuário existe no banco antes de buscar dados
+      await ensureUserExists();
+
+      const [projectsResult, foldersResult] = await Promise.all([getUserProjects(), getUserFolders()]);
+
       // getUserProjects retorna diretamente o array
       projects = Array.isArray(projectsResult) ? projectsResult : [];
       // getUserFolders retorna objeto com success e folders
       folders = foldersResult.success ? foldersResult.folders : [];
     } catch (error) {
-      // Se houver erro (usuário não encontrado, etc.), manter arrays vazios
-      console.error('Erro ao buscar dados do usuário:', error);
+      // Se houver erro, manter arrays vazios
+      console.error("Erro ao buscar dados do usuário:", error);
     }
   }
 
@@ -79,7 +93,7 @@ export default async function Home() {
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">
-                    {userId ? `${projects.length} projeto${projects.length !== 1 ? 's' : ''}` : "Acesse sua conta"}
+                    {userId ? `${projects.length} projeto${projects.length !== 1 ? "s" : ""}` : "Acesse sua conta"}
                   </span>
                   <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-blue-600 transition-colors" />
                 </div>
@@ -119,31 +133,27 @@ export default async function Home() {
                     </Button>
                   </Link>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {recentProjects.map((project) => (
                     <Card key={project.id} className="hover:shadow-md transition-shadow">
                       <CardHeader className="pb-3">
                         <CardTitle className="text-lg truncate">{project.name}</CardTitle>
                         {project.description && (
-                          <CardDescription className="line-clamp-2">
-                            {project.description}
-                          </CardDescription>
+                          <CardDescription className="line-clamp-2">{project.description}</CardDescription>
                         )}
                       </CardHeader>
                       <CardContent className="space-y-3">
                         {project.folder && (
                           <div className="flex items-center gap-2">
-                            <div 
-                              className="w-3 h-3 rounded-full" 
-                              style={{ backgroundColor: project.folder.color || '#6b7280' }}
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: project.folder.color || "#6b7280" }}
                             />
-                            <span className="text-xs text-muted-foreground">
-                              {project.folder.name}
-                            </span>
+                            <span className="text-xs text-muted-foreground">{project.folder.name}</span>
                           </div>
                         )}
-                        
+
                         <div className="flex gap-2">
                           <Link href={`/editor/${project.id}`} className="flex-1">
                             <Button size="sm" className="w-full">
@@ -165,9 +175,7 @@ export default async function Home() {
                   </div>
                   <div className="space-y-2">
                     <h3 className="text-xl font-semibold">Nenhum projeto ainda</h3>
-                    <p className="text-muted-foreground">
-                      Crie seu primeiro projeto para começar a usar o PromptMesh
-                    </p>
+                    <p className="text-muted-foreground">Crie seu primeiro projeto para começar a usar o PromptMesh</p>
                   </div>
                   <Link href="/projects/new">
                     <Button size="lg">
@@ -192,19 +200,15 @@ export default async function Home() {
                 <div>
                   <h3 className="text-2xl font-bold mb-2">Bem-vindo ao PromptMesh</h3>
                   <p className="text-muted-foreground mb-6 max-w-md">
-                    Crie fluxos visuais de prompts de IA de forma intuitiva. 
-                    Conecte, configure e execute seus prompts em um canvas interativo.
+                    Crie fluxos visuais de prompts de IA de forma intuitiva. Conecte, configure e execute seus prompts
+                    em um canvas interativo.
                   </p>
                   <div className="flex gap-4 justify-center">
                     <Button asChild size="lg">
-                      <Link href="/sign-in">
-                        Fazer Login
-                      </Link>
+                      <Link href="/sign-in">Fazer Login</Link>
                     </Button>
                     <Button asChild variant="outline" size="lg">
-                      <Link href="/sign-up">
-                        Criar Conta
-                      </Link>
+                      <Link href="/sign-up">Criar Conta</Link>
                     </Button>
                   </div>
                 </div>

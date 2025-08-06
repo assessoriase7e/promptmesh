@@ -88,7 +88,7 @@ yarn db:seed
 O script de seed cria:
 
 ### Planos de Assinatura
-- **Gratuito**: 10 créditos, até 3 projetos
+- **Gratuito**: 15 créditos de boas-vindas + 20 mensais, até 3 projetos
 - **Pro**: 500 créditos, projetos ilimitados
 - **Enterprise**: 2000 créditos, recursos avançados
 

@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/db-utils";
 
 /**

@@ -2,9 +2,11 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "../../lib/prisma";
-import { createAuditLog, deductUserCredits } from "@/lib/db-utils";
-import { ExecutionStatus } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { createAuditLog } from "@/lib/db-utils";
+import { ExecutionStatus, NodeType } from "@prisma/client";
+import { hasEnoughCredits, consumeCredits } from "./credit-actions";
+import { CREDIT_COSTS } from "@/lib/stripe";
 
 /**
  * Inicia execução de um projeto
@@ -48,14 +50,60 @@ export async function startExecution(projectId: string, metadata?: any) {
       throw new Error("Projeto não possui nodes para executar");
     }
 
-    // Verificar créditos (custo base de 1 crédito por execução)
-    const executionCost = 1;
-    if (user.credits < executionCost) {
-      throw new Error("Créditos insuficientes para executar o projeto");
+    // Calcular custo total baseado nos tipos de nodes
+    let totalCost = 0;
+    const costBreakdown: { nodeId: string; nodeType: NodeType; cost: number }[] = [];
+
+    for (const node of project.nodes) {
+      let nodeCost = 0;
+      
+      // Determinar custo baseado no tipo de node
+      switch (node.type) {
+        case NodeType.AI_GENERATOR:
+          // Verificar se é geração de imagem ou vídeo baseado no conteúdo
+          const nodeContent = node.content as any;
+          if (nodeContent?.model?.includes('flux')) {
+            nodeCost = CREDIT_COSTS.IMAGE_FLUX_SCHNELL;
+          } else if (nodeContent?.model?.includes('sdxl')) {
+            nodeCost = CREDIT_COSTS.IMAGE_SDXL;
+          } else if (nodeContent?.model?.includes('seedance')) {
+            nodeCost = CREDIT_COSTS.VIDEO_SEEDANCE;
+          } else if (nodeContent?.model?.includes('kling')) {
+            nodeCost = CREDIT_COSTS.VIDEO_KLING_MASTER;
+          } else {
+            // Custo padrão para outros tipos de geração
+            nodeCost = 1;
+          }
+          break;
+        case NodeType.IMAGE_EDITOR:
+          nodeCost = CREDIT_COSTS.IMAGE_EDIT; // Custo para edição de imagem
+          break;
+        default:
+          // Nodes que não consomem créditos (inputs, outputs, etc.)
+          nodeCost = 0;
+          break;
+      }
+
+      if (nodeCost > 0) {
+        totalCost += nodeCost;
+        costBreakdown.push({
+          nodeId: node.id,
+          nodeType: node.type,
+          cost: nodeCost
+        });
+      }
     }
 
-    // Deduzir créditos
-    await deductUserCredits(user.id, executionCost);
+    // Se não há nodes que consomem créditos, aplicar custo mínimo
+    if (totalCost === 0) {
+      totalCost = 1; // Custo mínimo de execução
+    }
+
+    // Verificar se o usuário tem créditos suficientes
+    const hasCredits = await hasEnoughCredits(totalCost);
+    if (!hasCredits) {
+      throw new Error(`Créditos insuficientes. Necessário: ${totalCost} créditos. Saldo atual: ${user.credits} créditos.`);
+    }
 
     // Criar execução
     const execution = await prisma.execution.create({
@@ -63,7 +111,12 @@ export async function startExecution(projectId: string, metadata?: any) {
         projectId,
         userId: user.id,
         status: ExecutionStatus.PENDING,
-        metadata,
+        metadata: {
+          ...metadata,
+          totalCost,
+          costBreakdown,
+          executedAt: new Date().toISOString(),
+        },
       },
       include: {
         project: {
@@ -71,6 +124,14 @@ export async function startExecution(projectId: string, metadata?: any) {
         },
       },
     });
+
+    // Consumir créditos e criar transação
+    await consumeCredits(
+      totalCost, 
+      `Execução do projeto: ${execution.project.name}`,
+      { costBreakdown, nodeCount: project.nodes.length },
+      execution.id
+    );
 
     // Criar execuções para cada node
     const nodeExecutions = await Promise.all(
@@ -90,7 +151,9 @@ export async function startExecution(projectId: string, metadata?: any) {
       projectId,
       projectName: execution.project.name,
       nodeCount: project.nodes.length,
-      creditsDeducted: executionCost,
+      totalCost,
+      costBreakdown,
+      creditsDeducted: totalCost,
       source: "execution_action",
     });
 

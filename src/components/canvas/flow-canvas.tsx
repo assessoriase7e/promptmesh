@@ -30,7 +30,6 @@ import { UploadNode } from "./nodes/upload-node";
 import { ParametersNode } from "./nodes/parameters-node";
 import { OutputNode } from "./nodes/output-node";
 import { UploadPromptNode } from "./nodes/upload-prompt-node";
-import { ResultPromptNode } from "./nodes/result-prompt-node";
 import { PromptProvider } from "@/contexts/prompt-context";
 
 const nodeTypes = {
@@ -39,10 +38,9 @@ const nodeTypes = {
   parameters: ParametersNode,
   output: OutputNode,
   "upload-prompt": UploadPromptNode,
-  "result-prompt": ResultPromptNode,
 };
 
-// Nós iniciais de exemplo - demonstrando a dinâmica de cadeia
+// Nodes iniciais de exemplo
 const initialNodes: Node[] = [
   {
     id: "1",
@@ -50,7 +48,6 @@ const initialNodes: Node[] = [
     position: { x: 100, y: 100 },
     data: {
       label: "Upload + Prompt",
-      imageUrl: "",
       prompt: "Transforme esta imagem em estilo anime",
     },
   },
@@ -62,8 +59,9 @@ const initialNodes: Node[] = [
       label: "Parâmetros IA",
       parameters: {
         model: "DALL-E 3",
-        style: "Anime",
-        resolution: "1024x1024",
+        style: "vivid",
+        quality: "hd",
+        size: "1024x1024",
       },
     },
   },
@@ -72,17 +70,8 @@ const initialNodes: Node[] = [
     type: "output",
     position: { x: 900, y: 100 },
     data: {
-      label: "Resultado 1",
-      outputs: ["https://via.placeholder.com/300x300/8b5cf6/ffffff?text=Resultado+1"],
-    },
-  },
-  {
-    id: "4",
-    type: "result-prompt",
-    position: { x: 500, y: 400 },
-    data: {
-      label: "Continuar Editando",
-      prompt: "Adicione efeitos de luz neon",
+      label: "Resultado",
+      outputs: [],
     },
   },
 ];
@@ -103,17 +92,6 @@ const initialEdges: Edge[] = [
     id: "e2-3",
     source: "2",
     target: "3",
-    type: "default",
-    animated: true,
-    style: {
-      strokeWidth: 3,
-      stroke: "hsl(var(--primary))",
-    },
-  },
-  {
-    id: "e3-4",
-    source: "3",
-    target: "4",
     type: "default",
     animated: true,
     style: {
@@ -304,27 +282,23 @@ export const FlowCanvas = ({
 
   // Função para validar se dois nodes podem se conectar
   const isValidConnection = useCallback((connection: Connection) => {
-    // Por enquanto, permitir todas as conexões para testar
-    return true;
+    const sourceNode = nodes.find(node => node.id === connection.source);
+    const targetNode = nodes.find(node => node.id === connection.target);
 
-    // const sourceNode = nodes.find(node => node.id === connection.source);
-    // const targetNode = nodes.find(node => node.id === connection.target);
+    if (!sourceNode || !targetNode) return false;
 
-    // if (!sourceNode || !targetNode) return false;
+    // Regras de conexão flexíveis - qualquer output pode conectar a inputs compatíveis
+    const validConnections: Record<string, string[]> = {
+      'prompt': ['parameters', 'output'],
+      'upload': ['parameters', 'upload-prompt'],
+      'upload-prompt': ['parameters', 'output'],
+      'parameters': ['output'],
+      'output': ['upload-prompt', 'parameters'], // Outputs podem conectar a upload-prompt e parameters
+    };
 
-    // // Regras de conexão baseadas nos tipos de nodes
-    // const validConnections: Record<string, string[]> = {
-    //   'prompt': ['parameters', 'output'],
-    //   'upload': ['parameters', 'upload-prompt'],
-    //   'upload-prompt': ['parameters', 'output'],
-    //   'parameters': ['output'],
-    //   'output': ['result-prompt'],
-    //   'result-prompt': ['parameters', 'output']
-    // };
-
-    // const allowedTargets = validConnections[sourceNode.type || ''] || [];
-    // return allowedTargets.includes(targetNode.type || '');
-  }, []);
+    const allowedTargets = validConnections[sourceNode.type || ''] || [];
+    return allowedTargets.includes(targetNode.type || '');
+  }, [nodes]);
 
   const onConnect = useCallback(
     (params: Connection) => {
@@ -665,6 +639,10 @@ export const FlowCanvas = ({
         selectionOnDrag={true}
         panOnDrag={[1, 2]}
         selectNodesOnDrag={false}
+        elevateNodesOnSelect={false}
+        nodesDraggable={true}
+        nodesConnectable={true}
+        elementsSelectable={true}
         defaultEdgeOptions={{
           animated: true,
           style: {
@@ -688,8 +666,6 @@ export const FlowCanvas = ({
                 return "#f59e0b";
               case "upload-prompt":
                 return "#f97316";
-              case "result-prompt":
-                return "#059669";
               default:
                 return "#6b7280";
             }
