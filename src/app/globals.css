@@ -170,6 +170,21 @@
     box-shadow: none !important;
   }
 
+  /* Garantir que nodes customizados sejam medidos corretamente */
+  .react-flow__node[data-id] {
+    width: auto !important;
+    height: auto !important;
+    min-width: fit-content !important;
+    min-height: fit-content !important;
+  }
+
+  /* Garantir que o wrapper dos nodes tenha dimensões corretas */
+  .react-flow__node[data-id] > div {
+    width: auto !important;
+    height: auto !important;
+    display: block !important;
+  }
+
   .react-flow__controls,
   .react-flow__minimap {
     background-color: hsl(var(--card)) !important;

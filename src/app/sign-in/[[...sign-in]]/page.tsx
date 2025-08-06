@@ -23,7 +23,7 @@ export default function Page() {
                 footerActionLink: "text-purple-600 hover:text-purple-700",
               },
             }}
-            redirectUrl="/projects"
+            redirectUrl="/"
             signUpUrl="/sign-up"
           />
         </div>
